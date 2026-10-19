@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thematic Movie Collage Generator (Soft Yellow 9:16)</title>
+  <!-- Library html2canvas untuk Ekspor Gambar -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Library PapaParse untuk membaca CSV dari Google Sheet (background) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Google Fonts & FontAwesome 6 untuk Ikon -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
+
+    :root {
+      /* Warna aksen project ini (kuning lembut). */
+      --accent: #F4D160;
+      --letterboxd-green: #00e054;
+
+      /* Gelap tipis di atas foto background (0 = foto asli, 1 = hitam penuh) */
+      --bg-dim: 0.35;
+      /* EFEK KACA DI LAYAR (tidak ikut ke PNG) */
+      --panel-bg: rgba(20, 24, 28, 0.72);
+      --panel-blur: 12px;
+
+      /* TATA LETAK: kedua panel sama tinggi (setinggi layar). */
+      --gap: 28px;
+      --stage-h: min(calc(100vh - 24px), calc((100vw - 392px - 30px) * 1.7778 + 30px), 1100px);
+      --stage-w: calc((var(--stage-h) - 30px) * 0.5625 + 30px);
+      --left-w: clamp(340px, calc(var(--stage-w) * 1.1), 520px);
+    }
+
+    html, body {
+      width: 100%;
+      background-color: #06080d;
+      color: #ffffff;
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 12px;
+      display: flex;
+      position: relative;
+    }
+
+    /* LATAR BELAKANG HALAMAN (foto dari link di Google Sheet). */
+    #bgLayer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      pointer-events: none;
+    }
+    #bgLayer.loaded { opacity: 1; }
+
+    /* ===== PESAN "HANYA DESKTOP" (Sama Persis Seperti Kalender Claude) ===== */
+    .desktop-notice {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: #06080d;
+      overflow-y: auto;
+    }
+    .dn-card {
+      max-width: 420px;
+      margin: auto;
+      text-align: center;
+      background: rgba(20, 24, 28, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 14px;
+      padding: 26px 22px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .dn-icon {
+      width: 56px; height: 56px;
+      margin: 0 auto 10px auto;
+      border-radius: 50%;
+      background: rgba(0, 224, 84, 0.12);
+      border: 1px solid rgba(0, 224, 84, 0.35);
+      color: var(--letterboxd-green);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+    }
+    .dn-badge {
+      display: inline-block;
+      font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+      color: #14181c; background: var(--letterboxd-green);
+      padding: 2px 10px; border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .dn-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; font-family: 'Inter', sans-serif; }
+    .dn-text { font-size: 13px; line-height: 1.6; color: #c0d0e0; font-family: 'Inter', sans-serif; }
+
+    html.mobile-blocked .main-layout { display: none !important; }
+    html.mobile-blocked .desktop-notice { display: flex; }
+
+    /* Cadangan lewat CSS murni (kalau JavaScript tidak berjalan) */
+    @media (hover: none), (pointer: coarse) {
+      .main-layout { display: none !important; }
+      .desktop-notice { display: flex; }
+    }
+
+    .main-layout {
+      position: relative;
+      z-index: 1;
+      margin: auto;
+      height: var(--stage-h);
+      display: grid;
+      grid-template-columns: var(--left-w) var(--stage-w);
+      column-gap: var(--gap);
+      align-items: stretch;
+    }
+
+    /* PANEL KIRI: kaca transparan */
+    .control-panel {
+      height: 100%;
+      min-height: 0;
+      background: var(--panel-bg);
+      -webkit-backdrop-filter: blur(var(--panel-blur));
+      backdrop-filter: blur(var(--panel-blur));
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+    .form-group.grow { flex: 1 1 auto; min-height: 0; }
+    .form-group label { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+
+    .counter {
+      font-size: 10px;
+      font-weight: 700;
+      color: #8a9bb0;
+      white-space: nowrap;
+    }
+    .counter.warn { color: #ff7b7b; }
+
+    input[type="text"], textarea {
+      background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 8px; border-radius: 6px; font-size: 11.5px; outline: none;
+    }
+    input[type="text"]:focus, textarea:focus { border-color: var(--accent); }
+
+    textarea {
+      font-family: monospace;
+      font-size: 10.5px;
+      line-height: 1.5;
+      resize: none;
+      flex: 1 1 auto;
+      min-height: 120px;
+      white-space: pre;
+      overflow: auto;
+    }
+
+    .hint {
+      font-size: 10.5px;
+      line-height: 1.45;
+      color: #9ab1c2;
+      background: rgba(15, 17, 21, 0.7);
+      border: 1px solid rgba(44, 52, 64, 0.8);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-top: 4px;
+    }
+    .hint i { color: var(--accent); margin-right: 4px; }
+    .hint strong { color: #ffffff; }
+
+    .btn { padding: 10px 14px; border: none; border-radius: 6px; font-weight: 700; font-size: 11.5px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .btn-export { background: var(--accent); color: #14181c; width: 100%; }
+    .btn-export:hover { background: #e0be50; }
+
+    /* PANEL KANAN (pratinjau): kaca transparan */
+    .stage-panel {
+      position: relative;
+      height: 100%;
+      background: var(--panel-bg);
+      -webkit-backdrop-filter: blur(var(--panel-blur));
+      backdrop-filter: blur(var(--panel-blur));
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .stage-inner {
+      position: absolute;
+      inset: 14px;
+      overflow: hidden;
+    }
+
+    .card-holder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 450px;
+      height: 800px;
+      transform: scale(var(--s, 1));
+      transform-origin: top left;
+    }
+    .card-holder .recap-card { position: absolute; top: 0; left: 0; }
+
+    .recap-card {
+      width: 450px;
+      height: 800px;
+      background-color: transparent;
+      padding: 35px 24px 25px 24px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header { text-align: center; margin-bottom: 12px; flex: 0 0 auto; }
+    .custom-header-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+      line-height: 1.25;
+      text-transform: capitalize;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .header-sub-accent {
+      width: 40px;
+      height: 3px;
+      background: var(--accent);
+      margin: 8px auto 0 auto;
+      border-radius: 2px;
+    }
+
+    .poster-area {
+      flex: 1 1 0;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .poster-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-content: center;
+    }
+
+    .poster-item {
+      position: relative;
+      flex: 0 0 auto;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #242c34;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.08);
+      outline: 2px solid transparent;
+      outline-offset: -2px;
+      cursor: grab;
+      transition: transform 0.12s ease, outline-color 0.12s ease, opacity 0.12s ease;
+    }
+    .poster-item > * { pointer-events: none; }
+    .poster-item > .poster-remove { pointer-events: auto; }
+    .poster-item.selected { outline-color: var(--accent); }
+    .poster-item.drag-over { outline-color: #ffffff; transform: scale(0.97); }
+    .poster-item.dragging { opacity: 0.4; }
+
+    /* Poster dipotong dari tengah (cover) lewat JavaScript: posisi dan ukurannya dihitung
+       sendiri, jadi proporsi asli gambar terjaga dan tidak melar, di layar maupun di PNG. */
+    .poster-img {
+      display: block;
+      max-width: none;
+      user-select: none;
+    }
+
+    .poster-remove {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, 0.78);
+      color: #ffffff;
+      font-size: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s ease, background 0.15s ease;
+      z-index: 3;
+    }
+    .poster-remove:hover { background: #d62828; }
+
+    .poster-num {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
+      background: rgba(0, 0, 0, 0.78);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      z-index: 3;
+    }
+    .poster-item:hover .poster-remove,
+    .poster-item:hover .poster-num { opacity: 1; }
+    @media (hover: none) {
+      .poster-remove, .poster-num { opacity: 1; }
+    }
+
+    .empty-hint {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #8a9bb0;
+      padding: 0 30px;
+    }
+
+    .user-profile-card {
+      flex: 0 0 auto;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 7px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .lbxd-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lbxd-dots {
+      font-size: 10.5px;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .user-handle-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .user-handle-info .handle-text {
+      font-size: 10px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .user-handle-info .sub-cta {
+      font-size: 7.5px;
+      color: #8a9bb0;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    @media (max-width: 900px) {
+      .main-layout {
+        width: 100%;
+        height: auto;
+        grid-template-columns: 1fr;
+        column-gap: 0;
+        row-gap: 15px;
+      }
+      .control-panel { height: auto; overflow-y: visible; }
+      .form-group.grow { flex: none; }
+      textarea { min-height: 180px; }
+      .stage-panel {
+        height: auto;
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      .stage-panel::before {
+        content: "";
+        display: block;
+        padding-top: calc(177.78% - 21.78px);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- PESAN: HANYA DAPAT DIAKSES VIA DESKTOP (Sama Persis Seperti Kalender Claude) -->
+<div class="desktop-notice" id="desktopNotice" role="alert">
+  <div class="dn-card">
+    <div class="dn-icon"><i class="fa-solid fa-desktop"></i></div>
+    <div class="dn-badge">Desktop</div>
+    <div class="dn-title">Hanya Tersedia di Desktop</div>
+    <p class="dn-text">
+      Hanya dapat diakses melalui komputer atau laptop (desktop).
+      Silakan buka kembali halaman ini menggunakan perangkat desktop agar seluruh fitur dapat berjalan dengan baik.
+    </p> 
+  </div>
+</div>
+
+<!-- Lapisan background halaman (diisi otomatis dari Google Sheet) -->
+<div id="bgLayer"></div>
+
+<div class="main-layout">
+
+  <!-- PANEL KONTROL KIRI -->
+  <div class="control-panel">
+    <div class="panel-title"><i class="fa-solid fa-border-all"></i> Movie Collage Generator</div>
+
+    <!-- JUDUL KOLEKSI -->
+    <div class="form-group">
+      <div class="label-row">
+        <label>Judul Koleksi (maks. 2 baris)</label>
+        <span class="counter" id="titleCounter">16/100</span>
+      </div>
+      <input type="text" id="inHeaderTitle" value="4 Film Favoritku" maxlength="100" oninput="onTitleInput()">
+    </div>
+
+    <!-- LINK POSTER (1 per baris, maksimal 16) -->
+    <div class="form-group grow">
+      <div class="label-row">
+        <label>Link Poster (1 link per baris)</label>
+        <span class="counter" id="linkCounter">0/16</span>
+      </div>
+      <textarea id="inPosters" spellcheck="false" placeholder="https://image.tmdb.org/t/p/original/...&#10;https://image.tmdb.org/t/p/original/...&#10;(maksimal 16 link)" oninput="onPostersInput()"></textarea>
+      <div class="hint">
+        <i class="fa-solid fa-circle-info"></i>
+        Maksimal <strong>16 poster</strong> (grid 4×4). Urutan baris = urutan poster.
+        Seret poster di pratinjau, atau klik dua poster berurutan, untuk menukar posisi.
+        Arahkan kursor ke poster untuk menghapusnya.
+      </div>
+    </div>
+
+    <!-- LINK LETTERBOXD (footer) -->
+    <div class="form-group">
+      <label>Link Letterboxd Kamu</label>
+      <input type="text" id="inUserHandle" value="letterboxd.com/hwangik" placeholder="letterboxd.com/username" oninput="updateHandle()">
+    </div>
+
+    <button class="btn btn-export" id="btnExport" onclick="exportCollagePNG()"><i class="fa-solid fa-download"></i> Download Story PNG (1080×1920)</button>
+  </div>
+
+  <!-- PANEL KANAN: PRATINJAU 9:16 -->
+  <div class="stage-panel">
+    <div class="stage-inner" id="stageInner">
+      <div class="card-holder" id="cardHolder">
+
+        <div class="recap-card" id="exportCard">
+
+          <!-- HEADER JUDUL -->
+          <div class="card-header">
+            <div class="custom-header-title" id="outHeaderTitle">4 Film Favoritku</div>
+            <div class="header-sub-accent"></div>
+          </div>
+
+          <!-- GRID POSTER ADAPTIF -->
+          <div class="poster-area" id="posterArea">
+            <div class="poster-grid" id="posterGrid"></div>
+            <div class="empty-hint edit-only" id="emptyHint">Tempel link poster di panel kiri</div>
+          </div>
+
+          <!-- FOOTER LETTERBOXD -->
+          <div class="user-profile-card">
+            <div class="lbxd-brand">
+              <div class="lbxd-dots">
+                <span style="color:#00e054;">●</span><span style="color:#ff8000;">●</span><span style="color:#40bcf4;">●</span>
+              </div>
+              <span class="brand-name">Letterboxd</span>
+            </div>
+            <div class="user-handle-info">
+              <span class="handle-text js-handle">letterboxd.com/hwangik</span>
+              <span class="sub-cta">Follow on Letterboxd</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ================================================================
+     KUNCI DESKTOP
+     Pengecekan tidak bergantung pada lebar halaman (mode "Situs Desktop" HP terdeteksi mutlak)
+     ================================================================ */
+  function isUnsupportedDevice() {
+    const ua = navigator.userAgent || '';
+    const mq = q => !!(window.matchMedia && window.matchMedia(q).matches);
+    const touchPoints = navigator.maxTouchPoints || 0;
+
+    const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile|BlackBerry|webOS/i.test(ua);
+    const uaDataMobile = !!(navigator.userAgentData && navigator.userAgentData.mobile);
+    const macTouch = /Macintosh/i.test(ua) && touchPoints > 1;          // iPhone/iPad dengan "Request Desktop Website"
+    const touchOnly = touchPoints > 0 && !mq('(any-pointer: fine)');    // layar sentuh tanpa mouse/trackpad
+    const coarsePrimary = mq('(pointer: coarse)') || mq('(hover: none)');
+    const smallScreen = screen.width > 0 && Math.min(screen.width, screen.height) < 480;
+
+    return mobileUA || uaDataMobile || macTouch || touchOnly || coarsePrimary || smallScreen;
+  }
+
+  function applyDeviceGate() {
+    const blocked = isUnsupportedDevice();
+    document.documentElement.classList.toggle('mobile-blocked', blocked);
+    return blocked;
+  }
+
+  applyDeviceGate();
+
+  /* ================================================================
+     PENGATURAN BACKGROUND
+     ================================================================ */
+  const BG_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQvAF1umoNPkLzc7_T948TZOrKVp2FY9qg_7cSOHM380P3-i0fm2u-wGc5ks4OC89L03EDRNcZ8xyGc/pub?gid=0&single=true&output=csv";
+
+  const BASE_W = 450;
+  const BASE_H = 800;
+  const EXPORT_W = 1080;
+
+  const MAX_POSTERS = 16;
+  const MAX_TITLE = 100;
+
+  const DEFAULT_TITLE = "4 Film Favoritku";
+  const DEFAULT_POSTERS = [
+    "https://image.tmdb.org/t/p/original/cHdzSnl1LXRhOECAgJGQBB5ug4Y.jpg",
+    "https://image.tmdb.org/t/p/original/mpJZ1YM7TMN00TYPQ7aXeKA4wHu.jpg",
+    "https://image.tmdb.org/t/p/original/xn98VCLMcF6TulxsKJq2EQ8WYL2.jpg",
+    "https://image.tmdb.org/t/p/original/hfuxIKRCNsecLmoDdO0HJ1YUvv1.jpg"
+  ];
+
+  const $ = id => document.getElementById(id);
+
+  let posterUrls = [];
+  let ignoredCount = 0;
+  let selectedIndex = null;
+  let dragIndex = null;
+  const imageCache = {};
+  const inflight = {};
+  const placing = new Set(); // poster yang sedang dipasang (ditunggu sebelum export)
+  let postersTimer = null;
+
+  async function loadBackgroundFromSheet() {
+    if (!BG_SHEET_CSV_URL) return;
+
+    try {
+      const sep = BG_SHEET_CSV_URL.includes('?') ? '&' : '?';
+      const res = await fetch(BG_SHEET_CSV_URL + sep + 't=' + Date.now());
+      if (!res.ok) throw new Error("Sheet tidak bisa dibaca: " + res.status);
+      const text = await res.text();
+
+      const parsed = Papa.parse(text, { header: false, skipEmptyLines: true });
+      const cells = [].concat(...parsed.data).map(c => String(c).trim());
+      const url = cells.find(c => /^https?:\/\//i.test(c));
+      if (!url) {
+        console.warn("Tidak ada link gambar (https://...) di Sheet.");
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        const layer = $('bgLayer');
+        const safeUrl = url.replace(/"/g, '%22');
+        layer.style.backgroundImage =
+          `linear-gradient(rgba(6,8,13,var(--bg-dim)), rgba(6,8,13,var(--bg-dim))), url("${safeUrl}")`;
+        layer.classList.add('loaded');
+      };
+      img.onerror = () => console.warn("Gambar background tidak bisa dimuat:", url);
+      img.src = url;
+    } catch (err) {
+      console.warn("Background dilewati:", err);
+    }
+  }
+
+  /* ================================================================
+     GAMBAR POSTER
+     ================================================================ */
+  async function fetchImageAsBase64(url) {
+    const cleanUrl = url.trim().replace(/^"|"$/g, '');
+    const proxyList = [
+      // w = lebar maksimal, we = tanpa memperbesar, q = kualitas JPEG
+      u => `https://images.weserv.nl/?url=${encodeURIComponent(u)}&w=800&we&q=92`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+    ];
+
+    for (let getProxy of proxyList) {
+      try {
+        const res = await fetch(getProxy(cleanUrl));
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        if (blob.size > 0) {
+          return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+      } catch (err) {
+        console.warn("Proxy failed:", err);
+      }
+    }
+    return cleanUrl;
+  }
+
+  function loadImg(src) {
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = src;
+    });
+  }
+
+  /* Mengecilkan gambar bertahap (setengah demi setengah) dengan kualitas tinggi,
+     hanya kalau gambar jauh lebih besar dari yang dibutuhkan. Hasilnya halus, tidak bergerigi. */
+  async function downscaleDataUrl(src, targetW) {
+    if (!String(src).startsWith('data:')) return src;
+    try {
+      const img = await loadImg(src);
+      if (img.naturalWidth <= targetW * 1.15) return src;
+
+      let source = img;
+      let w = img.naturalWidth, h = img.naturalHeight;
+
+      while (w / 2 >= targetW) {
+        const c = document.createElement('canvas');
+        c.width = Math.round(w / 2);
+        c.height = Math.round(h / 2);
+        const cx = c.getContext('2d');
+        cx.imageSmoothingEnabled = true;
+        cx.imageSmoothingQuality = 'high';
+        cx.drawImage(source, 0, 0, c.width, c.height);
+        source = c; w = c.width; h = c.height;
+      }
+
+      const out = document.createElement('canvas');
+      out.width = targetW;
+      out.height = Math.round(h * targetW / w);
+      const ox = out.getContext('2d');
+      ox.imageSmoothingEnabled = true;
+      ox.imageSmoothingQuality = 'high';
+      ox.drawImage(source, 0, 0, out.width, out.height);
+      return out.toDataURL('image/jpeg', 0.95);
+    } catch (e) {
+      return src;
+    }
+  }
+
+  /* Memasang poster ke dalam kotak dengan cara "cover":
+     - gambar diperbesar secukupnya sampai menutupi seluruh kotak, lalu dipotong dari tengah
+     - gambar yang kecil di-zoom (diperbesar), bukan ditarik
+     - proporsi asli gambar selalu terjaga, sehingga tidak melar di layar maupun di PNG
+     Rasio kotak diukur langsung dari tampilan. */
+  async function placeCover(item, src) {
+    const bw = item.clientWidth;
+    const bh = item.clientHeight;
+    const ratio = (bw > 0 && bh > 0) ? bw / bh : 2 / 3;
+    const targetW = Math.max(300, Math.round((bw || 100) * (EXPORT_W / BASE_W) * 2));
+
+    const finalSrc = await downscaleDataUrl(src, targetW);
+
+    await new Promise(resolve => {
+      const img = new Image();
+      img.className = 'poster-img';
+      img.alt = '';
+      img.draggable = false;
+      img.onload = () => {
+        const ri = img.naturalWidth / img.naturalHeight;
+        let pw = 100, ph = 100;
+        if (ri > ratio) pw = (ri / ratio) * 100;  // gambar lebih lebar dari kotak: potong kiri-kanan
+        else ph = (ratio / ri) * 100;             // gambar lebih tinggi dari kotak: potong atas-bawah
+        img.style.cssText =
+          `position:absolute; width:${pw}%; height:${ph}%; left:${(100 - pw) / 2}%; top:${(100 - ph) / 2}%;`;
+
+        const old = item.querySelector('.poster-img');
+        if (old) old.remove();
+        item.insertBefore(img, item.firstChild);
+        resolve();
+      };
+      img.onerror = resolve;
+      img.src = finalSrc;
+    });
+  }
+
+  function trackPlace(item, src) {
+    const p = placeCover(item, src).then(() => { placing.delete(p); }, () => { placing.delete(p); });
+    placing.add(p);
+    return p;
+  }
+
+  async function loadPosters() {
+    const pending = [...new Set(posterUrls)].filter(u => !(u in imageCache) && !inflight[u]);
+
+    await Promise.all(pending.map(async u => {
+      inflight[u] = true;
+      try {
+        imageCache[u] = await fetchImageAsBase64(u);
+      } catch (e) {
+        imageCache[u] = u;
+      }
+      delete inflight[u];
+      updateImagesFromCache();
+    }));
+  }
+
+  function updateImagesFromCache() {
+    document.querySelectorAll('#posterGrid .poster-item').forEach((item, i) => {
+      const url = posterUrls[i];
+      if (url && imageCache[url] && item.dataset.loadedFor !== url) {
+        item.dataset.loadedFor = url;
+        trackPlace(item, imageCache[url]);
+      }
+    });
+  }
+
+  function fitTitle() {
+    const el = $('outHeaderTitle');
+    const raw = ($('inHeaderTitle').value || '').trim() || 'My Favorite Films';
+    const LINE_H = 1.25, MAX_LINES = 2, MAX_FONT = 22, MIN_FONT = 15;
+    const fits = size => el.offsetHeight <= Math.round(size * LINE_H * MAX_LINES) + 2;
+
+    let size = MAX_FONT;
+    el.textContent = raw;
+    el.style.fontSize = size + 'px';
+
+    while (!fits(size) && size > MIN_FONT) {
+      size -= 0.5;
+      el.style.fontSize = size + 'px';
+    }
+
+    if (!fits(size)) {
+      let lo = 0, hi = raw.length;
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        el.textContent = raw.slice(0, mid).trimEnd() + '…';
+        if (fits(size)) lo = mid; else hi = mid - 1;
+      }
+      el.textContent = raw.slice(0, lo).trimEnd() + '…';
+    }
+  }
+
+  function onTitleInput() {
+    $('titleCounter').textContent = `${$('inHeaderTitle').value.length}/${MAX_TITLE}`;
+    fitTitle();
+    layoutGrid();
+  }
+
+  function layoutGrid() {
+    const area = $('posterArea');
+    const grid = $('posterGrid');
+    const n = posterUrls.length;
+    const W = area.clientWidth;
+    const H = area.clientHeight;
+    if (!n || !W || !H) return;
+
+    let cols, gx, gy, maxW = Infinity;
+    if (n <= 1)      { cols = 1; gx = 0;  gy = 0;  maxW = 260; }
+    else if (n <= 4) { cols = 2; gx = 12; gy = 14; }
+    else if (n <= 9) { cols = 3; gx = 8;  gy = 10; }
+    else             { cols = 4; gx = 6;  gy = 8;  }
+
+    const rows = Math.ceil(n / cols);
+    const wByWidth = (W - (cols - 1) * gx) / cols;
+    const wByHeight = ((H - (rows - 1) * gy) / rows) / 1.5;
+    const w = Math.floor(Math.min(wByWidth, wByHeight, maxW));
+    const h = Math.round(w * 1.5);
+
+    grid.style.width = (cols * w + (cols - 1) * gx) + 'px';
+    grid.style.columnGap = gx + 'px';
+    grid.style.rowGap = gy + 'px';
+
+    grid.querySelectorAll('.poster-item').forEach(el => {
+      el.style.width = w + 'px';
+      el.style.height = h + 'px';
+    });
+  }
+
+  function renderCollage() {
+    fitTitle();
+
+    const grid = $('posterGrid');
+    grid.innerHTML = '';
+
+    posterUrls.forEach((url, i) => {
+      const item = document.createElement('div');
+      item.className = 'poster-item' + (i === selectedIndex ? ' selected' : '');
+      item.draggable = true;
+
+      const num = document.createElement('span');
+      num.className = 'poster-num edit-only';
+      num.textContent = i + 1;
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'poster-remove edit-only';
+      remove.title = 'Hapus poster';
+      remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      remove.addEventListener('click', e => {
+        e.stopPropagation();
+        removePoster(i);
+      });
+
+      item.appendChild(num);
+      item.appendChild(remove);
+      attachItemEvents(item, i);
+      grid.appendChild(item);
+    });
+
+    $('emptyHint').style.display = posterUrls.length ? 'none' : 'flex';
+    layoutGrid();
+    updateCounter();
+
+    // Pasang poster yang sudah ada di cache (ukuran kotak sudah diketahui setelah layoutGrid)
+    updateImagesFromCache();
+  }
+
+  function attachItemEvents(item, i) {
+    item.addEventListener('dragstart', e => {
+      dragIndex = i;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(i));
+    });
+
+    item.addEventListener('dragend', () => {
+      dragIndex = null;
+      document.querySelectorAll('#posterGrid .poster-item').forEach(el => el.classList.remove('dragging', 'drag-over'));
+    });
+
+    item.addEventListener('dragover', e => {
+      if (dragIndex === null) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      item.classList.add('drag-over');
+    });
+
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      if (dragIndex === null || dragIndex === i) return;
+      const from = dragIndex;
+      dragIndex = null;
+      swapPosters(from, i);
+    });
+
+    item.addEventListener('click', () => {
+      if (selectedIndex === null) {
+        selectedIndex = i;
+        refreshSelection();
+      } else if (selectedIndex === i) {
+        selectedIndex = null;
+        refreshSelection();
+      } else {
+        swapPosters(selectedIndex, i);
+      }
+    });
+  }
+
+  function refreshSelection() {
+    document.querySelectorAll('#posterGrid .poster-item').forEach((el, i) => {
+      el.classList.toggle('selected', i === selectedIndex);
+    });
+  }
+
+  function swapPosters(a, b) {
+    [posterUrls[a], posterUrls[b]] = [posterUrls[b], posterUrls[a]];
+    selectedIndex = null;
+    syncTextarea();
+    renderCollage();
+  }
+
+  function removePoster(i) {
+    posterUrls.splice(i, 1);
+    selectedIndex = null;
+    syncTextarea();
+    renderCollage();
+  }
+
+  function syncTextarea() {
+    $('inPosters').value = posterUrls.join('\n');
+    ignoredCount = 0;
+  }
+
+  function updateCounter() {
+    const el = $('linkCounter');
+    el.textContent = ignoredCount > 0
+      ? `${posterUrls.length}/${MAX_POSTERS} • ${ignoredCount} link diabaikan`
+      : `${posterUrls.length}/${MAX_POSTERS}`;
+    el.classList.toggle('warn', ignoredCount > 0);
+  }
+
+  function onPostersInput() {
+    clearTimeout(postersTimer);
+    postersTimer = setTimeout(applyPosterText, 350);
+  }
+
+  function applyPosterText() {
+    const found = $('inPosters').value.match(/https?:\/\/[^\s"']+/g) || [];
+    ignoredCount = Math.max(0, found.length - MAX_POSTERS);
+    posterUrls = found.slice(0, MAX_POSTERS);
+    selectedIndex = null;
+    renderCollage();
+    loadPosters();
+  }
+
+  function updateHandle() {
+    const val = $('inUserHandle').value.trim() || 'letterboxd.com/hwangik';
+    document.querySelectorAll('.js-handle').forEach(el => { el.innerText = val; });
+  }
+
+  function fitPreview() {
+    const inner = $('stageInner');
+    const w = inner.clientWidth;
+    const h = inner.clientHeight;
+    if (!w || !h) return;
+    $('cardHolder').style.setProperty('--s', Math.min(w / BASE_W, h / BASE_H));
+  }
+
+  async function renderCardToCanvas() {
+    const clone = $('exportCard').cloneNode(true);
+
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    clone.querySelectorAll('.edit-only').forEach(el => el.remove());
+    clone.querySelectorAll('.poster-item').forEach(el => {
+      el.classList.remove('selected', 'drag-over', 'dragging');
+      el.removeAttribute('draggable');
+    });
+    clone.style.cssText =
+      `display:flex; position:relative; top:0; left:0; width:${BASE_W}px; height:${BASE_H}px;` +
+      'transform:none; border-radius:0; box-shadow:none; background-color:#14181c;';
+
+    const stage = document.createElement('div');
+    stage.style.cssText =
+      `position:fixed; left:-10000px; top:0; width:${BASE_W}px; height:${BASE_H}px; overflow:hidden; pointer-events:none;`;
+    stage.appendChild(clone);
+    document.body.appendChild(stage);
+
+    try {
+      return await html2canvas(clone, {
+        scale: EXPORT_W / BASE_W,
+        width: BASE_W,
+        height: BASE_H,
+        scrollX: 0,
+        scrollY: 0,
+        useCORS: false,
+        allowTaint: true,
+        backgroundColor: '#14181c',
+        logging: false
+      });
+    } finally {
+      document.body.removeChild(stage);
+    }
+  }
+
+  async function exportCollagePNG() {
+    if (posterUrls.length === 0) {
+      alert("Masukkan minimal 1 link poster!");
+      return;
+    }
+
+    const btn = $('btnExport');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membuat PNG...';
+
+    try {
+      await loadPosters();
+      while (Object.keys(inflight).length) {
+        await new Promise(r => setTimeout(r, 150));
+      }
+
+      // Pastikan semua poster sudah selesai terpasang sebelum difoto
+      updateImagesFromCache();
+      while (placing.size) {
+        await Promise.all([...placing]);
+      }
+
+      const canvas = await renderCardToCanvas();
+      const titleStr = ($('inHeaderTitle').value || 'Collage')
+        .replace(/[\\/:*?"<>|]+/g, '')
+        .trim()
+        .replace(/\s+/g, '-') || 'Collage';
+
+      const link = document.createElement('a');
+      link.download = `Collage-${titleStr}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      alert("Gagal mengekspor gambar: " + err.message);
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  window.onload = () => {
+    // Perangkat non-desktop: berhenti di sini, hanya pesan "Hanya Tersedia di Desktop" yang tampil
+    if (applyDeviceGate()) return;
+
+    $('inHeaderTitle').value = DEFAULT_TITLE;
+    $('inPosters').value = DEFAULT_POSTERS.join('\n');$('titleCounter').textContent = `${DEFAULT_TITLE.length}/${MAX_TITLE}`;
+    updateHandle();
+
+    applyPosterText();
+    fitPreview();
+    loadBackgroundFromSheet();
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { fitTitle(); layoutGrid(); });
+    }
+
+    window.addEventListener('resize', fitPreview);
+    if (window.ResizeObserver) {
+      new ResizeObserver(fitPreview).observe($('stageInner'));
+    }
+  };
+</script>
+
+</body>
+</html>
