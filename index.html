@@ -12,35 +12,48 @@
     :root { --letterboxd-green: #00e054; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* TRANSISI HALAMAN */
+    /* =========================================================
+       PERBAIKAN 1: ANTI-KILATAN PUTIH
+       Pasang warna hitam mutlak di HTML & BODY
+       ========================================================= */
+    html, body {
+      width: 100vw; height: 100vh; overflow: hidden; 
+      background-color: #06080d !important; /* Paksa hitam */
+      color: #ffffff;
+      font-family: 'Inter', sans-serif; 
+      display: flex; justify-content: center; align-items: center;
+      position: fixed; top: 0; left: 0;
+    }
+
+    /* Animasi transisi halaman masuk & keluar */
     body { opacity: 0; transition: opacity 0.4s ease; }
     body.loaded { opacity: 1; }
     body.fade-out { opacity: 0; }
 
-    html, body {
-      width: 100vw; height: 100vh; overflow: hidden; background-color: #06080d; color: #ffffff;
-      font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center;
-      position: fixed; top: 0; left: 0;
-    }
-
+    /* =========================================================
+       PERBAIKAN 2: BACKGROUND LOKAL PASTI MUNCUL
+       z-index dibuat 0 (bukan -1) biar gak tenggelam
+       ========================================================= */
     .bg-layer {
       position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-      background-image: url('bg.jpg'); /* LOCAL BACKGROUND */
+      background-image: url('bg.jpg'); 
       background-size: cover; background-position: center; background-repeat: no-repeat;
-      z-index: -1; opacity: 0; transition: opacity 1s ease-in-out;
+      z-index: 0; 
+      opacity: 0; transition: opacity 1s ease-in-out;
     }
     .bg-layer.loaded { opacity: 1; }
 
+    /* Overlay gelap di atas bg */
     .bg-overlay {
       position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
       background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55));
-      z-index: 0; pointer-events: none;
+      z-index: 1; pointer-events: none;
     }
 
     .home-container {
       width: 100%; max-width: 1200px; padding: 20px; display: flex; flex-direction: column;
       align-items: center; text-align: center; position: relative; height: 100vh;
-      justify-content: space-between; z-index: 10;
+      justify-content: space-between; z-index: 10; /* Di atas overlay */
     }
 
     .content-wrapper { margin: auto; display: flex; flex-direction: column; align-items: center; width: 100%; }
