@@ -145,7 +145,15 @@
     <div class="home-footer">Inspired by Letterboxd. Built by Hwang with AI</div>
   </div>
 
-  <script>
+    <script>
+    // MENGATASI BLANK HITAM SAAT TOMBOL BACK BROWSER DIKLIK
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) {
+        document.body.classList.remove('fade-out');
+        document.body.classList.add('loaded');
+      }
+    });
+
     function isUnsupportedDevice() {
       const ua = navigator.userAgent || '';
       const mq = q => !!(window.matchMedia && window.matchMedia(q).matches);
@@ -181,5 +189,3 @@
       });
     });
   </script>
-</body>
-</html>
