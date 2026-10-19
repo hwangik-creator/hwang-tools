@@ -4,120 +4,91 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Signature Dual-Picture Review Generator</title>
-  <!-- Library html2canvas untuk Ekspor Gambar -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- Library PapaParse untuk membaca CSV dari Google Sheet (background) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <!-- FontAwesome 6 untuk Ikon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
+    /* =========================================================
+       PERBAIKAN 1: DASAR HITAM & ANIMASI
+       ========================================================= */
+    html, body { 
+      width: 100%; 
+      background-color: #06080d !important; 
+      color: #ffffff;
+      margin: 0; padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+    body { 
+      min-height: 100vh; 
+      display: flex; 
+      position: relative; 
+      animation: fadeInPage 0.5s ease forwards; 
+    }
+    @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
+    body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
+
+    /* =========================================================
+       PERBAIKAN 2: BACKGROUND LOKAL & TOMBOL BACK
+       ========================================================= */
+    #bgLayer { 
+      position: fixed; inset: 0; z-index: 0; 
+      background-image: url('../bg.jpg') !important; 
+      background-size: cover; background-position: center; background-repeat: no-repeat; 
+      opacity: 1 !important; pointer-events: none; 
+    }
+    #bgLayer::before { 
+      content: ""; position: absolute; inset: 0; 
+      background: rgba(6, 8, 13, 0.35); z-index: 1; 
+    }
+
+    .btn-back-home {
+      position: fixed; top: 20px; left: 20px; z-index: 9999;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
+      padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff;
+      text-decoration: none; cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
+
+    /* =========================================================
+       PERBAIKAN 3: UKURAN LAYOUT (DIBIKIN LEGA & ADA GAP)
+       ========================================================= */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      /* Lebar maksimal seluruh layout. Kecilkan kalau ingin tampilan lebih kecil. */
-      --max-w: 1500px;
-      /* Gelap tipis di atas foto background (0 = foto asli, 1 = hitam penuh) */
+      --max-w: 1300px; /* Diperkecil dari 1500px */
       --bg-dim: 0.35;
-      /* EFEK KACA DI LAYAR (tidak ikut ke PNG) */
       --panel-bg: rgba(20, 24, 28, 0.72);
       --panel-blur: 12px;
     }
 
-    html, body {
-      width: 100%;
-      background-color: #06080d;
-      color: #ffffff;
-    }
-
-     {
-      min-height: 100vh;
-      padding: 12px;
-      display: flex;
-      position: relative;
-    }
-
-    /* LATAR BELAKANG HALAMAN (foto dari link di Google Sheet).
-       Berada di belakang semuanya dan tidak ikut ter-export ke PNG. */
-    #bgLayer {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      opacity: 0;
-      transition: opacity 0.6s ease;
-      pointer-events: none;
-    }
-    #bgLayer.loaded { opacity: 1; }
-
-    /* ===== KUNCI / PESAN "HANYA DESKTOP" ===== */
-    .desktop-notice {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: #06080d;
-      overflow-y: auto;
-    }
-    .dn-card {
-      max-width: 420px;
-      margin: auto;
-      text-align: center;
-      background: rgba(20, 24, 28, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 14px;
-      padding: 26px 22px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    .dn-icon {
-      width: 56px; height: 56px;
-      margin: 0 auto 10px auto;
-      border-radius: 50%;
-      background: rgba(0, 224, 84, 0.12);
-      border: 1px solid rgba(0, 224, 84, 0.35);
-      color: #00e054;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 24px;
-    }
-    .dn-badge {
-      display: inline-block;
-      font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
-      color: #14181c; background: #00e054;
-      padding: 2px 10px; border-radius: 10px;
-      margin-bottom: 10px;
-    }
+    .desktop-notice { display: none; position: fixed; inset: 0; z-index: 50; align-items: center; justify-content: center; padding: 20px; background: #06080d; overflow-y: auto; }
+    .dn-card { max-width: 420px; margin: auto; text-align: center; background: rgba(20, 24, 28, 0.9); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 14px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+    .dn-icon { width: 56px; height: 56px; margin: 0 auto 10px auto; border-radius: 50%; background: rgba(0, 224, 84, 0.12); border: 1px solid rgba(0, 224, 84, 0.35); color: #00e054; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .dn-badge { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #14181c; background: #00e054; padding: 2px 10px; border-radius: 10px; margin-bottom: 10px; }
     .dn-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
     .dn-text { font-size: 13px; line-height: 1.6; color: #c0d0e0; }
 
     html.mobile-blocked .main-layout { display: none !important; }
     html.mobile-blocked .desktop-notice { display: flex; }
+    @media (hover: none), (pointer: coarse) { .main-layout { display: none !important; } .desktop-notice { display: flex; } }
 
-    @media (hover: none), (pointer: coarse) {
-      .main-layout { display: none !important; }
-      .desktop-notice { display: flex; }
-    }
-
-    /* Layout dua panel: kiri 30.9% | jarak 5.8% | kanan 63.3%.
-       Lebar dibatasi tinggi layar supaya panel kanan (persegi) tidak melebihi tinggi layar. */
+    /* Layout Utama: Diatur agar proporsional dan ada jarak atas/bawah */
     .main-layout {
       position: relative;
       z-index: 1;
-      width: min(100%, var(--max-w), calc((100vh - 24px) / 0.633));
+      width: min(96%, var(--max-w), calc((100vh - 100px) / 0.66)); /* 100px = gap atas bawah */
       margin: auto;
       display: grid;
       grid-template-columns: 30.9% 63.3%;
       column-gap: 5.8%;
-      align-items: start;
+      align-items: center; /* Tengahin secara vertikal */
+      padding: 20px 0;
     }
 
-    /* PANEL KIRI: kaca transparan, tinggi otomatis sama dengan panel kanan.
-       contain: size membuat isi panel tidak menentukan tinggi baris;
-       kalau isinya lebih panjang, panel bisa di-scroll sendiri. */
     .control-panel {
       contain: size;
       align-self: stretch;
@@ -134,115 +105,35 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
-    .panel-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #00e054;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
+    .panel-title { font-size: 15px; font-weight: 700; color: #00e054; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
     .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
     .form-group.full-width { grid-column: span 2; }
     .form-group label { font-size: 10px; color: #00e054; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    input[type="text"], textarea {
-      background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 7px; border-radius: 6px; font-size: 11px; outline: none;
-    }
+    input[type="text"], textarea { background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 7px; border-radius: 6px; font-size: 11px; outline: none; }
     input[type="text"]:focus, textarea:focus { border-color: #00e054; }
-
     textarea { resize: vertical; font-family: monospace; font-size: 10.5px; line-height: 1.35; height: 95px; }
 
-    /* INPUT RATING & LIKED: bentuknya meniru kotak rating di kartu */
-    .rating-input {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      background: rgba(15, 17, 21, 0.7);
-      border: 1px solid rgba(44, 52, 64, 0.8);
-      border-radius: 8px;
-      padding: 8px 10px;
-    }
-
-    .stars-picker {
-      display: flex;
-      gap: 2px;
-      outline: none;
-      border-radius: 6px;
-    }
+    .rating-input { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: rgba(15, 17, 21, 0.7); border: 1px solid rgba(44, 52, 64, 0.8); border-radius: 8px; padding: 8px 10px; }
+    .stars-picker { display: flex; gap: 2px; outline: none; border-radius: 6px; }
     .stars-picker:focus-visible { box-shadow: 0 0 0 2px rgba(0, 224, 84, 0.4); }
-
-    .star {
-      position: relative;
-      width: 26px;
-      height: 26px;
-      cursor: pointer;
-    }
-    .star svg {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      transition: transform 0.12s ease;
-    }
+    .star { position: relative; width: 26px; height: 26px; cursor: pointer; }
+    .star svg { position: absolute; inset: 0; width: 100%; height: 100%; transition: transform 0.12s ease; }
     .star .star-base { fill: #2c3440; }
     .star .star-fill { fill: #00e054; }
     .star:hover svg { transform: scale(1.12); }
-
-    .hit {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 50%;
-      z-index: 2;
-    }
+    .hit { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 2; }
     .hit-l { left: 0; }
     .hit-r { right: 0; }
 
-    .like-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #0f1115;
-      border: 1px solid #2c3440;
-      color: #8a9bb0;
-      padding: 6px 11px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.2s, border-color 0.2s, color 0.2s;
-    }
+    .like-btn { display: inline-flex; align-items: center; gap: 6px; background: #0f1115; border: 1px solid #2c3440; color: #8a9bb0; padding: 6px 11px; border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s; }
     .like-btn i { font-size: 13px; transition: color 0.2s; }
     .like-btn:hover { border-color: #ff8000; }
-    .like-btn.active {
-      background: rgba(255, 128, 0, 0.12);
-      border-color: #ff8000;
-      color: #ffb366;
-    }
+    .like-btn.active { background: rgba(255, 128, 0, 0.12); border-color: #ff8000; color: #ffb366; }
     .like-btn.active i { color: #ff8000; animation: heartPop 0.3s ease; }
-    @keyframes heartPop {
-      0%   { transform: scale(0.6); }
-      60%  { transform: scale(1.3); }
-      100% { transform: scale(1); }
-    }
-
-    .rating-input-score {
-      margin-left: auto;
-      font-size: 12px;
-      font-weight: 800;
-      color: #ffffff;
-    }
+    @keyframes heartPop { 0% { transform: scale(0.6); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+    .rating-input-score { margin-left: auto; font-size: 12px; font-weight: 800; color: #ffffff; }
 
     .btn-group { display: flex; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
     .btn { padding: 8px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -255,282 +146,51 @@
     .btn-export:hover { background: #e07000; }
     .btn-all { background: #3b82f6; color: #ffffff; width: 100%; margin-top: 5px; }
 
-    /* PANEL KANAN (pratinjau): kaca transparan, selalu persegi (tinggi = lebar) */
-    .stage-panel {
-      position: relative;
-      align-self: start;
-      background: var(--panel-bg);
-      -webkit-backdrop-filter: blur(var(--panel-blur));
-      backdrop-filter: blur(var(--panel-blur));
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    .stage-panel::before {
-      content: "";
-      display: block;
-      padding-top: 100%;
-    }
+    .stage-panel { position: relative; align-self: start; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .stage-panel::before { content: ""; display: block; padding-top: 100%; }
+    .stage-inner { position: absolute; inset: 14px; overflow: hidden; }
 
-    .stage-inner {
-      position: absolute;
-      inset: 14px;
-      overflow: hidden;
-    }
-
-    /* Kartu didesain di 480x480 lalu diperbesar otomatis (--s) agar pas dengan panel */
-    .card-holder {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 480px;
-      height: 480px;
-      transform: scale(var(--s, 1));
-      transform-origin: top left;
-    }
+    .card-holder { position: absolute; top: 0; left: 0; width: 480px; height: 480px; transform: scale(var(--s, 1)); transform-origin: top left; }
     .card-holder .recap-card { position: absolute; top: 0; left: 0; }
 
-    /* KANVAS 1:1 (FOTO 1, 2, 3) - basis 480x480, diekspor ke 1080x1080.
-       Di layar transparan (menampilkan background), saat export otomatis solid. */
-    .recap-card {
-      width: 480px;
-      height: 480px;
-      background-color: transparent;
-      padding: 24px;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: relative;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
+    .recap-card { width: 480px; height: 480px; background-color: transparent; padding: 24px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; flex-shrink: 0; }
 
-    /* FOTO 1: IMPRESSION CARD LAYOUT */
-    .photo1-layout {
-      display: flex;
-      gap: 16px;
-      height: 100%;
-      align-items: center;
-    }
+    .photo1-layout { display: flex; gap: 16px; height: 100%; align-items: center; }
+    .poster-col { position: relative; width: 170px; aspect-ratio: 2 / 3; border-radius: 9px; overflow: hidden; background-color: #242c34; box-shadow: 0 6px 18px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; align-self: center; }
+    .poster-col img, .still-card img { display: block; max-width: none; user-select: none; }
 
-    /* Kotak poster & adegan: gambar di dalamnya dipotong dari tengah (cover) lewat JavaScript,
-       jadi proporsi asli gambar terjaga dan tidak melar, baik di layar maupun di PNG. */
-    .poster-col {
-      position: relative;
-      width: 170px;
-      aspect-ratio: 2 / 3;
-      border-radius: 9px;
-      overflow: hidden;
-      background-color: #242c34;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.1);
-      flex-shrink: 0;
-      align-self: center;
-    }
-
-    .poster-col img,
-    .still-card img {
-      display: block;
-      max-width: none;
-      user-select: none;
-    }
-
-    .meta-col {
-      flex: 1;
-      height: 250px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 2px 0;
-    }
-
-    .movie-title-val {
-      font-size: 19px;
-      font-weight: 800;
-      color: #ffffff;
-      line-height: 1.25;
-      padding-bottom: 2px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .movie-sub-val {
-      font-size: 11px;
-      color: #8a9bb0;
-      font-weight: 600;
-      margin-top: 5px;
-      margin-bottom: 5px;
-    }
-
-    .genre-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-bottom: 5px;
-    }
-
-    .genre-pill {
-      background: #0f1115;
-      border: 1px solid #2c3440;
-      color: #c0d0e0;
-      font-size: 9px;
-      font-weight: 600;
-      padding: 2px 5px;
-      border-radius: 4px;
-    }
-
-    .meta-line {
-      font-size: 10.5px;
-      color: #d0e0f0;
-      line-height: 1.35;
-    }
+    .meta-col { flex: 1; height: 250px; display: flex; flex-direction: column; justify-content: space-between; padding: 2px 0; }
+    .movie-title-val { font-size: 19px; font-weight: 800; color: #ffffff; line-height: 1.25; padding-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .movie-sub-val { font-size: 11px; color: #8a9bb0; font-weight: 600; margin-top: 5px; margin-bottom: 5px; }
+    .genre-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
+    .genre-pill { background: #0f1115; border: 1px solid #2c3440; color: #c0d0e0; font-size: 9px; font-weight: 600; padding: 2px 5px; border-radius: 4px; }
+    .meta-line { font-size: 10.5px; color: #d0e0f0; line-height: 1.35; }
     .meta-line strong { color: #8a9bb0; font-weight: 600; }
 
-    .rating-box {
-      background: rgba(15, 17, 21, 0.7);
-      border: 1px solid rgba(44, 52, 64, 0.8);
-      padding: 7px 10px;
-      border-radius: 7px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 5px;
-    }
-
-    .rating-stars-val {
-      font-size: 12.5px;
-      color: #00e054;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-    }
+    .rating-box { background: rgba(15, 17, 21, 0.7); border: 1px solid rgba(44, 52, 64, 0.8); padding: 7px 10px; border-radius: 7px; display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
+    .rating-stars-val { font-size: 12.5px; color: #00e054; display: flex; align-items: center; gap: 3px; }
     .heart-icon { color: #ff8000; font-size: 10.5px; margin-left: 3px; }
+    .rating-score-num { font-size: 11.5px; font-weight: 800; color: #ffffff; }
 
-    .rating-score-num {
-      font-size: 11.5px;
-      font-weight: 800;
-      color: #ffffff;
-    }
+    .user-profile-card { border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 7px; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; }
+    .lbxd-brand { display: flex; align-items: center; gap: 6px; }
+    .lbxd-dots { font-size: 10.5px; letter-spacing: -2px; line-height: 1; }
+    .brand-name { font-size: 10.5px; font-weight: 800; color: #ffffff; }
+    .user-handle-info { display: flex; flex-direction: column; align-items: flex-end; }
+    .user-handle-info .handle-text { font-size: 10px; font-weight: 700; color: #ffffff; }
+    .user-handle-info .sub-cta { font-size: 7.5px; color: #8a9bb0; text-transform: uppercase; letter-spacing: 0.8px; }
 
-    /* FOOTER (sama untuk Foto 1, 2, dan 3): logo di kiri, link akun di kanan */
-    .user-profile-card {
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding-top: 7px;
-      margin-top: 5px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .lbxd-brand {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .lbxd-dots {
-      font-size: 10.5px;
-      letter-spacing: -2px;
-      line-height: 1;
-    }
-
-    .brand-name {
-      font-size: 10.5px;
-      font-weight: 800;
-      color: #ffffff;
-    }
-
-    .user-handle-info {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-
-    .user-handle-info .handle-text {
-      font-size: 10px;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .user-handle-info .sub-cta {
-      font-size: 7.5px;
-      color: #8a9bb0;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-    }
-
-    /* FOTO 2: CINEMATIC STILLS (GRID 2x2 16:9) */
-    .photo2-layout {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      justify-content: space-between;
-    }
-
-    .photo2-header {
-      text-align: center;
-      font-size: 13.5px;
-      font-weight: 800;
-      color: #ffffff;
-      padding-bottom: 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      margin-bottom: 10px;
-    }
-
-    .stills-grid-2x2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      flex-grow: 1;
-      align-content: center;
-    }
-
-    .still-card {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      border-radius: 7px;
-      overflow: hidden;
-      background: #242c34;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-
+    .photo2-layout { display: flex; flex-direction: column; height: 100%; justify-content: space-between; }
+    .photo2-header { text-align: center; font-size: 13.5px; font-weight: 800; color: #ffffff; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px; }
+    .stills-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-grow: 1; align-content: center; }
+    .still-card { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 7px; overflow: hidden; background: #242c34; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); }
     .p2-footer { margin-top: 10px; padding-top: 8px; }
 
-    /* FOTO 3: GABUNGAN FOTO 1 + FOTO 2 DALAM SATU KOTAK 1:1 */
     .card3 { padding: 16px; }
-
-    .photo3-layout {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      gap: 6px;
-    }
-
-    .p3-top {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    /* Poster 98 px lebar = 147 px tinggi. Kolom metadata dibuat setinggi poster:
-       judul sejajar atas poster, rating sejajar bawah poster (selasar seperti Foto 1). */
+    .photo3-layout { display: flex; flex-direction: column; height: 100%; gap: 6px; }
+    .p3-top { flex: 1 1 auto; min-height: 0; display: flex; gap: 12px; align-items: center; }
     .p3-top .poster-col { width: 98px; }
-
-    .p3-top .meta-col {
-      height: 147px;
-      flex: 1;
-      min-width: 0;
-      padding: 0;
-      justify-content: space-between;
-    }
-
+    .p3-top .meta-col { height: 147px; flex: 1; min-width: 0; padding: 0; justify-content: space-between; }
     .p3-top .movie-title-val { font-size: 14px; line-height: 1.2; padding-bottom: 2px; }
     .p3-top .movie-sub-val { font-size: 9px; margin: 2px 0 2px 0; }
     .p3-top .genre-badges { gap: 3px; margin-bottom: 3px; }
@@ -540,70 +200,21 @@
     .p3-top .rating-box { padding: 4px 8px; margin-top: 0; }
     .p3-top .rating-stars-val { font-size: 11.5px; }
     .p3-top .rating-score-num { font-size: 10.5px; }
-
-    .p3-stills {
-      flex: 0 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-
+    .p3-stills { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .p3-footer { margin-top: 0; padding-top: 5px; }
 
-    /* Tampilan HP / tablet: ditumpuk ke bawah */
     @media (max-width: 900px) {
-      .main-layout {
-        width: 100%;
-        grid-template-columns: 1fr;
-        column-gap: 0;
-        row-gap: 15px;
-      }
+      .main-layout { width: 100%; grid-template-columns: 1fr; column-gap: 0; row-gap: 15px; }
       .control-panel { contain: none; overflow-y: visible; }
     }
   </style>
 </head>
 <body>
 
-<!-- TOMBOL BACK & OVERRIDE BG -->
-<style>
-  /* Transisi Halaman Masuk */
-  body { animation: fadeInPage 0.5s ease forwards; }
-  @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
-  body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
-
-  /* Background Lokal (Override Google Sheet) */
-  #bgLayer { background-image: url('../bg.jpg') !important; background-size: cover; background-position: center; opacity: 1 !important; }
-  #bgLayer::before { content: ""; position: absolute; inset: 0; background: rgba(6, 8, 13, 0.35); z-index: -1; }
-  
-  /* Tombol Back Melayang */
-  .btn-back-home {
-    position: fixed; top: 20px; left: 20px; z-index: 9999;
-    display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
-    padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff;
-    text-decoration: none; cursor: pointer; transition: all 0.2s ease;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
-  .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
-</style>
-
-<!-- Tombol Back Fisik -->
 <a href="../" class="btn-back-home" onclick="goBackHome(event)">
   <i class="fa-solid fa-arrow-left"></i> Kembali ke Home
 </a>
 
-<script>
-  // Animasi Kembali ke Home
-  function goBackHome(e) {
-    e.preventDefault();
-    document.body.classList.add('fade-out');
-    setTimeout(() => { window.location.href = '../'; }, 400);
-  }
-</script>
-<!-- END TOMBOL BACK -->
-  
-<!-- PESAN: HANYA DAPAT DIAKSES VIA DESKTOP -->
 <div class="desktop-notice" id="desktopNotice" role="alert">
   <div class="dn-card">
     <div class="dn-icon"><i class="fa-solid fa-desktop"></i></div>
@@ -616,35 +227,28 @@
   </div>
 </div>
 
-<!-- Lapisan background halaman (diisi otomatis dari Google Sheet) -->
 <div id="bgLayer"></div>
 
 <div class="main-layout">
-
-  <!-- PANEL KONTROL KIRI -->
   <div class="control-panel">
     <div class="panel-title"><i class="fa-solid fa-square-poll-vertical"></i> Review Generator (1:1 • 1080×1080)</div>
 
-    <!-- Switch Preview Foto 1 / Foto 2 / Foto 3 -->
     <div class="btn-group" style="margin-bottom: 10px;">
       <button class="btn btn-active" id="btnTab1" onclick="switchPreview(1)"><i class="fa-solid fa-id-card"></i> Foto 1</button>
       <button class="btn btn-inactive" id="btnTab2" onclick="switchPreview(2)"><i class="fa-solid fa-images"></i> Foto 2</button>
       <button class="btn btn-inactive" id="btnTab3" onclick="switchPreview(3)"><i class="fa-solid fa-table-cells-large"></i> Foto 3</button>
     </div>
 
-    <!-- KOTAK 1: IMPOR BLOK METADATA -->
     <div class="form-group">
       <label><i class="fa-solid fa-align-left"></i> KOTAK 1: PASTE BLOK METADATA</label>
       <textarea id="metaBlockInput" placeholder="Judul: Double Happiness&#10;Tahun: 2025 • Taiwan • 118 min&#10;Genre: Comedy, Drama, Family&#10;Director: Joseph Chen-Chieh Hsu&#10;Cast: Liu Kuan-ting, Esther Liu"></textarea>
       <button class="btn btn-process" onclick="processMetaBlock()"><i class="fa-solid fa-wand-magic-sparkles"></i> Terapkan Metadata Teks</button>
     </div>
 
-    <!-- RATING & LIKED -->
     <div class="form-group">
       <label>Rating & Liked</label>
       <div class="rating-input">
-        <div class="stars-picker" id="starsPicker" tabindex="0" role="slider"
-             aria-label="Rating bintang" aria-valuemin="0.5" aria-valuemax="5" aria-valuenow="4.5"></div>
+        <div class="stars-picker" id="starsPicker" tabindex="0" role="slider" aria-label="Rating bintang" aria-valuemin="0.5" aria-valuemax="5" aria-valuenow="4.5"></div>
         <button type="button" class="like-btn active" id="likeBtn" onclick="toggleLiked()" aria-pressed="true">
           <i class="fa-solid fa-heart" id="likeIcon"></i><span id="likeText">Liked</span>
         </button>
@@ -675,16 +279,12 @@
     </div>
   </div>
 
-  <!-- PANEL KANAN: PRATINJAU (persegi) -->
   <div class="stage-panel">
     <div class="stage-inner" id="stageInner">
       <div class="card-holder" id="cardHolder">
-
-        <!-- FOTO 1: IMPRESSION CARD -->
         <div class="recap-card" id="card1">
           <div class="photo1-layout">
             <div class="poster-col" id="outPoster"></div>
-
             <div class="meta-col">
               <div>
                 <div class="movie-title-val" id="outTitle">-</div>
@@ -693,7 +293,6 @@
                 <div class="meta-line"><strong>Dir.</strong> <span id="outDirector">-</span></div>
                 <div class="meta-line" style="margin-top: 2px;"><strong>Cast:</strong> <span id="outCast">-</span></div>
               </div>
-
               <div>
                 <div class="rating-box">
                   <div class="rating-stars-val">
@@ -702,7 +301,6 @@
                   </div>
                   <div class="rating-score-num" id="outScoreNum">4.5 / 5</div>
                 </div>
-
                 <div class="user-profile-card">
                   <div class="lbxd-brand">
                     <div class="lbxd-dots">
@@ -720,18 +318,15 @@
           </div>
         </div>
 
-        <!-- FOTO 2: CINEMATIC STILLS (GRID 2x2) -->
         <div class="recap-card" id="card2" style="display: none;">
           <div class="photo2-layout">
             <div class="photo2-header" id="outPhoto2Header">Cinematic Stills</div>
-
             <div class="stills-grid-2x2">
               <div class="still-card" id="outStill0"></div>
               <div class="still-card" id="outStill1"></div>
               <div class="still-card" id="outStill2"></div>
               <div class="still-card" id="outStill3"></div>
             </div>
-
             <div class="user-profile-card p2-footer">
               <div class="lbxd-brand">
                 <div class="lbxd-dots">
@@ -747,7 +342,6 @@
           </div>
         </div>
 
-        <!-- FOTO 3: GABUNGAN (POSTER + METADATA DI ATAS, 4 ADEGAN DI BAWAH) -->
         <div class="recap-card card3" id="card3" style="display: none;">
           <div class="photo3-layout">
             <div class="p3-top">
@@ -771,14 +365,12 @@
                 </div>
               </div>
             </div>
-
             <div class="p3-stills">
               <div class="still-card" id="storyOutStill0"></div>
               <div class="still-card" id="storyOutStill1"></div>
               <div class="still-card" id="storyOutStill2"></div>
               <div class="still-card" id="storyOutStill3"></div>
             </div>
-
             <div class="user-profile-card p3-footer">
               <div class="lbxd-brand">
                 <div class="lbxd-dots">
@@ -793,29 +385,28 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
-
 </div>
 
 <script>
-  /* ================================================================
-     KUNCI / DETEKSI PERANGKAT DESKTOP
-     ================================================================ */
+  function goBackHome(e) {
+    e.preventDefault();
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = '../'; }, 400);
+  }
+
   function isUnsupportedDevice() {
     const ua = navigator.userAgent || '';
     const mq = q => !!(window.matchMedia && window.matchMedia(q).matches);
     const touchPoints = navigator.maxTouchPoints || 0;
-
     const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile|BlackBerry|webOS/i.test(ua);
     const uaDataMobile = !!(navigator.userAgentData && navigator.userAgentData.mobile);
     const macTouch = /Macintosh/i.test(ua) && touchPoints > 1;          
     const touchOnly = touchPoints > 0 && !mq('(any-pointer: fine)');    
     const coarsePrimary = mq('(pointer: coarse)') || mq('(hover: none)');
     const smallScreen = screen.width > 0 && Math.min(screen.width, screen.height) < 480;
-
     return mobileUA || uaDataMobile || macTouch || touchOnly || coarsePrimary || smallScreen;
   }
 
@@ -824,22 +415,13 @@
     document.documentElement.classList.toggle('mobile-blocked', blocked);
     return blocked;
   }
-
   applyDeviceGate();
 
-  /* ================================================================
-     PENGATURAN BACKGROUND
-     Link CSV dari Google Sheet yang sudah "Dipublikasikan ke web".
-     Sel yang berisi link gambar (https://...) dipakai sebagai background.
-     ================================================================ */
   const BG_SHEET_CSV_URL = "";
-
   const BASE_SIZE = 480;
   const EXPORT_SIZE = 1080;
-
   const POSTER_MAX_W = 800;
   const STILL_MAX_W = 1000;
-
   const STAR_PATH = 'M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.2l-5.9 3.4 1.3-6.6-4.9-4.6 6.6-.8z';
 
   let activePhotoTab = 1;
@@ -847,49 +429,16 @@
   let hoverValue = null;
   let isLiked = true;
 
-  /* ---------- Background dari Google Sheet ---------- */
   async function loadBackgroundFromSheet() {
     if (!BG_SHEET_CSV_URL) return;
-
-    try {
-      const sep = BG_SHEET_CSV_URL.includes('?') ? '&' : '?';
-      const res = await fetch(BG_SHEET_CSV_URL + sep + 't=' + Date.now());
-      if (!res.ok) throw new Error("Sheet tidak bisa dibaca: " + res.status);
-      const text = await res.text();
-
-      const parsed = Papa.parse(text, { header: false, skipEmptyLines: true });
-      const cells = [].concat(...parsed.data).map(c => String(c).trim());
-      const url = cells.find(c => /^https?:\/\//i.test(c));
-      if (!url) {
-        console.warn("Tidak ada link gambar (https://...) di Sheet.");
-        return;
-      }
-
-      const img = new Image();
-      img.onload = () => {
-        const layer = document.getElementById('bgLayer');
-        const safeUrl = url.replace(/"/g, '%22');
-        layer.style.backgroundImage =
-          `linear-gradient(rgba(6,8,13,var(--bg-dim)), rgba(6,8,13,var(--bg-dim))), url("${safeUrl}")`;
-        layer.classList.add('loaded');
-      };
-      img.onerror = () => console.warn("Gambar background tidak bisa dimuat:", url);
-      img.src = url;
-    } catch (err) {
-      console.warn("Background dilewati:", err);
-    }
   }
 
-  /* ================================================================
-     GAMBAR (poster & backdrop)
-     ================================================================ */
   async function fetchImageAsBase64(url, maxW) {
     const cleanUrl = url.trim().replace(/^"|"$/g, '');
     const proxyList = [
       u => `https://images.weserv.nl/?url=${encodeURIComponent(u)}&w=${maxW}&we&q=92`,
       u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
     ];
-
     for (let getProxy of proxyList) {
       try {
         const res = await fetch(getProxy(cleanUrl));
@@ -924,10 +473,8 @@
     try {
       const img = await loadImg(src);
       if (img.naturalWidth <= maxW * 1.15) return src;
-
       let source = img;
       let w = img.naturalWidth, h = img.naturalHeight;
-
       while (w / 2 >= maxW) {
         const c = document.createElement('canvas');
         c.width = Math.round(w / 2);
@@ -938,7 +485,6 @@
         cx.drawImage(source, 0, 0, c.width, c.height);
         source = c; w = c.width; h = c.height;
       }
-
       const out = document.createElement('canvas');
       out.width = maxW;
       out.height = Math.round(h * maxW / w);
@@ -1035,7 +581,6 @@
   function renderStars() {
     const value = (hoverValue !== null) ? hoverValue : ratingValue;
     const stars = document.querySelectorAll('#starsPicker .star');
-
     stars.forEach((star, idx) => {
       const fill = Math.max(0, Math.min(1, value - idx));
       star.querySelector('.star-fill').style.clipPath = `inset(0 ${(1 - fill) * 100}% 0 0)`;
@@ -1073,14 +618,11 @@
     }
 
     const lines = raw.split('\n');
-
     lines.forEach(line => {
       const match = line.match(/^(Judul|Title|Tahun|Year|Durasi|Runtime|Genre|Director|Sutradara|Cast|Pemain)\s*:\s*(.*)$/i);
-
       if (match) {
         const key = match[1].toLowerCase();
         const val = match[2].trim();
-
         if (key.includes('judul') || key.includes('title')) {
           document.getElementById('outTitle').innerText = val;
           document.getElementById('storyOutTitle').innerText = val;
@@ -1116,7 +658,6 @@
         }
       }
     });
-
     updatePreview();
   }
 
@@ -1145,15 +686,12 @@
 
   function updatePreview() {
     const userHandle = document.getElementById('inUserHandle').value.trim() || 'letterboxd.com/hwangik';
-
     document.getElementById('outStars').innerText = getStarString(ratingValue);
     document.getElementById('outScoreNum').innerText = formatRatingScore(ratingValue);
     document.getElementById('outHeart').style.display = isLiked ? 'inline-block' : 'none';
-
     document.getElementById('storyOutStars').innerText = getStarString(ratingValue);
     document.getElementById('storyOutScoreNum').innerText = formatRatingScore(ratingValue);
     document.getElementById('storyOutHeart').style.display = isLiked ? 'inline-block' : 'none';
-
     document.querySelectorAll('.js-handle').forEach(el => { el.innerText = userHandle; });
   }
 
@@ -1167,7 +705,6 @@
   async function loadStillsUrls() {
     const rawText = document.getElementById('inStills').value;
     const urls = rawText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-
     for (let i = 0; i < Math.min(4, urls.length); i++) {
       try {
         const src = await prepareImage(urls[i], STILL_MAX_W);
@@ -1190,7 +727,6 @@
   async function renderCardToCanvas(photoNum) {
     const source = document.getElementById('card' + photoNum);
     const clone = source.cloneNode(true);
-
     clone.removeAttribute('id');
     clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
     clone.style.cssText =
@@ -1258,7 +794,6 @@
 
   window.onload = () => {
     if (applyDeviceGate()) return;
-
     buildStars();
     updatePreview();
     fitPreview();
