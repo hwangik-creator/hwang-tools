@@ -4,351 +4,145 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hwang's Tools</title>
-  <!-- Favicon Ikon Film Reel Modern yang Senada dengan Ikon Tombol -->
   <link rel="icon" type="image/png" href="https://img.icons8.com/?size=100&id=wd93opJhF4VC&format=png&color=FFFFFF">
-  
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- PapaParse Library untuk membaca CSV Spreadsheet -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <style>
-    :root {
-      --letterboxd-green: #00e054;
-    }
-
+    :root { --letterboxd-green: #00e054; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* TRANSISI HALAMAN */
+    body { opacity: 0; transition: opacity 0.4s ease; }
+    body.loaded { opacity: 1; }
+    body.fade-out { opacity: 0; }
+
     html, body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background-color: #06080d;
-      color: #ffffff;
-      font-family: 'Inter', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: fixed;
-      top: 0;
-      left: 0;
+      width: 100vw; height: 100vh; overflow: hidden; background-color: #06080d; color: #ffffff;
+      font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center;
+      position: fixed; top: 0; left: 0;
     }
 
-    /* Layer Background Dinamis dengan Efek Fade-In */
     .bg-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-image: url('https://i.ibb.co.com/N2kZsRV6/p2914240511.jpg'); /* Fallback awal */
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      z-index: -1;
-      opacity: 0;
-      transition: opacity 1.2s ease-in-out;
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+      background-image: url('bg.jpg'); /* LOCAL BACKGROUND */
+      background-size: cover; background-position: center; background-repeat: no-repeat;
+      z-index: -1; opacity: 0; transition: opacity 1s ease-in-out;
     }
+    .bg-layer.loaded { opacity: 1; }
 
-    .bg-layer.loaded {
-      opacity: 1;
-    }
-
-    /* Overlay Gelap Transparan */
     .bg-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
       background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55));
-      z-index: 0;
-      pointer-events: none;
+      z-index: 0; pointer-events: none;
     }
 
     .home-container {
-      width: 100%;
-      max-width: 1200px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      position: relative;
-      height: 100vh;
-      justify-content: space-between;
-      z-index: 10;
+      width: 100%; max-width: 1200px; padding: 20px; display: flex; flex-direction: column;
+      align-items: center; text-align: center; position: relative; height: 100vh;
+      justify-content: space-between; z-index: 10;
     }
 
-    .content-wrapper {
-      margin: auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-    }
+    .content-wrapper { margin: auto; display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .home-title { font-size: 2.3rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; text-shadow: 0 4px 20px rgba(0,0,0,0.7); }
+    .home-title span { color: var(--letterboxd-green); }
+    .home-subtitle { font-size: 0.95rem; color: #9ab; margin-bottom: 35px; font-weight: 500; text-shadow: 0 2px 10px rgba(0,0,0,0.7); }
 
-    .home-title {
-      font-size: 2.3rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.7);
-    }
-
-    .home-title span {
-      color: var(--letterboxd-green);
-    }
-
-    .home-subtitle {
-      font-size: 0.95rem;
-      color: #9ab;
-      margin-bottom: 35px;
-      font-weight: 500;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.7);
-    }
-
-    .menu-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      width: 100%;
-    }
-
-    @media (max-width: 1024px) {
-      .menu-grid {
-        grid-template-columns: repeat(2, 1fr);
-        max-width: 700px;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .menu-grid {
-        grid-template-columns: 1fr;
-        max-width: 380px;
-      }
-    }
+    .menu-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 100%; }
+    @media (max-width: 1024px) { .menu-grid { grid-template-columns: repeat(2, 1fr); max-width: 700px; } }
+    @media (max-width: 600px) { .menu-grid { grid-template-columns: 1fr; max-width: 380px; } }
 
     .menu-card {
-      background: rgba(20, 24, 28, 0.78);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 14px;
-      padding: 30px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-decoration: none;
-      color: #ffffff;
-      transition: all 0.3s ease;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-      position: relative;
-      overflow: hidden;
-      cursor: pointer;
+      background: rgba(20, 24, 28, 0.78); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 30px 20px;
+      display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #ffffff;
+      transition: all 0.3s ease; box-shadow: 0 15px 35px rgba(0,0,0,0.5); position: relative; overflow: hidden; cursor: pointer;
     }
+    .menu-card:hover { transform: translateY(-6px); border-color: var(--letterboxd-green); background: rgba(25, 30, 36, 0.9); box-shadow: 0 20px 40px rgba(0, 224, 84, 0.2); }
+    .card-icon { width: 55px; height: 55px; background: rgba(0, 224, 84, 0.15); border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; color: var(--letterboxd-green); margin-bottom: 18px; transition: background 0.3s ease; }
+    .menu-card:hover .card-icon { background: var(--letterboxd-green); color: #14181c; }
+    .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+    .card-desc { font-size: 0.8rem; color: #9ab; line-height: 1.4; }
+    .card-badge { position: absolute; top: 12px; right: 12px; font-size: 0.65rem; font-weight: 700; padding: 3px 7px; border-radius: 4px; background: rgba(0, 224, 84, 0.2); color: var(--letterboxd-green); }
+    .home-footer { font-size: 0.75rem; color: #789; margin-bottom: 15px; text-shadow: 0 2px 8px rgba(0,0,0,0.8); letter-spacing: 0.3px; }
 
-    .menu-card:hover {
-      transform: translateY(-6px);
-      border-color: var(--letterboxd-green);
-      background: rgba(25, 30, 36, 0.9);
-      box-shadow: 0 20px 40px rgba(0, 224, 84, 0.2);
-    }
-
-    .card-icon {
-      width: 55px;
-      height: 55px;
-      background: rgba(0, 224, 84, 0.15);
-      border-radius: 12px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 1.5rem;
-      color: var(--letterboxd-green);
-      margin-bottom: 18px;
-      transition: background 0.3s ease;
-    }
-
-    .menu-card:hover .card-icon {
-      background: var(--letterboxd-green);
-      color: #14181c;
-    }
-
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .card-desc {
-      font-size: 0.8rem;
-      color: #9ab;
-      line-height: 1.4;
-    }
-
-    .card-badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      font-size: 0.65rem;
-      font-weight: 700;
-      padding: 3px 7px;
-      border-radius: 4px;
-      background: rgba(0, 224, 84, 0.2);
-      color: var(--letterboxd-green);
-    }
-
-    /* Footer Estetik */
-    .home-footer {
-      font-size: 0.75rem;
-      color: #789;
-      margin-bottom: 15px;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-      letter-spacing: 0.3px;
-    }
-
-    /* ===== PESAN "HANYA DESKTOP" ===== */
-    .desktop-notice {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: #06080d;
-      overflow-y: auto;
-    }
-    .dn-card {
-      max-width: 420px;
-      margin: auto;
-      text-align: center;
-      background: rgba(20, 24, 28, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 14px;
-      padding: 26px 22px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    .dn-icon {
-      width: 56px; height: 56px;
-      margin: 0 auto 10px auto;
-      border-radius: 50%;
-      background: rgba(0, 224, 84, 0.12);
-      border: 1px solid rgba(0, 224, 84, 0.35);
-      color: var(--letterboxd-green);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 24px;
-    }
-    .dn-badge {
-      display: inline-block;
-      font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
-      color: #14181c; background: var(--letterboxd-green);
-      padding: 2px 10px; border-radius: 10px;
-      margin-bottom: 10px;
-    }
+    /* Desktop Notice */
+    .desktop-notice { display: none; position: fixed; inset: 0; z-index: 50; align-items: center; justify-content: center; padding: 20px; background: #06080d; overflow-y: auto; }
+    .dn-card { max-width: 420px; margin: auto; text-align: center; background: rgba(20, 24, 28, 0.9); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 14px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+    .dn-icon { width: 56px; height: 56px; margin: 0 auto 10px auto; border-radius: 50%; background: rgba(0, 224, 84, 0.12); border: 1px solid rgba(0, 224, 84, 0.35); color: var(--letterboxd-green); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .dn-badge { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #14181c; background: var(--letterboxd-green); padding: 2px 10px; border-radius: 10px; margin-bottom: 10px; }
     .dn-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
     .dn-text { font-size: 13px; line-height: 1.6; color: #c0d0e0; }
 
     html.mobile-blocked .home-container { display: none !important; }
     html.mobile-blocked .desktop-notice { display: flex; }
-
-    @media (hover: none), (pointer: coarse) {
-      .home-container { display: none !important; }
-      .desktop-notice { display: flex; }
-    }
+    @media (hover: none), (pointer: coarse) { .home-container { display: none !important; } .desktop-notice { display: flex; } }
   </style>
 </head>
 <body>
 
-  <!-- PESAN: HANYA DAPAT DIAKSES VIA DESKTOP -->
   <div class="desktop-notice" id="desktopNotice" role="alert">
     <div class="dn-card">
       <div class="dn-icon"><i class="fa-solid fa-desktop"></i></div>
       <div class="dn-badge">Desktop</div>
       <div class="dn-title">Hanya Tersedia di Desktop</div>
-      <p class="dn-text">
-        Hanya dapat diakses melalui komputer atau laptop (desktop).
-        Silakan buka kembali halaman ini menggunakan perangkat desktop agar seluruh fitur dapat berjalan dengan baik.
-      </p> 
+      <p class="dn-text">Hanya dapat diakses melalui komputer atau laptop (desktop). Silakan buka kembali halaman ini menggunakan perangkat desktop.</p> 
     </div>
   </div>
 
-  <!-- Layer Background Dinamis & Overlay -->
   <div id="bgLayer" class="bg-layer"></div>
   <div class="bg-overlay"></div>
 
   <div class="home-container">
-    <div></div> <!-- Spacer atas -->
-
+    <div></div>
     <div class="content-wrapper">
       <h1 class="home-title">Hwang's <span>Tools</span></h1>
       <p class="home-subtitle">Dibuat dan digunakan untuk keperluan pribadi.</p>
 
       <div class="menu-grid">
-        <!-- Tombol 1: Monthly Calendar -->
         <a href="./movie-calendar/" class="menu-card">
           <div class="card-badge">Active</div>
-          <div class="card-icon">
-            <i class="fa-solid fa-calendar-days"></i>
-          </div>
+          <div class="card-icon"><i class="fa-solid fa-calendar-days"></i></div>
           <div class="card-title">Monthly Calendar</div>
           <div class="card-desc">Buat kalender bulanan estetik dari file ZIP Letterboxd kamu.</div>
         </a>
 
-        <!-- Tombol 2: Custom Posters (Review Generator) -->
         <a href="./custom-posters/" class="menu-card">
           <div class="card-badge">Active</div>
-          <div class="card-icon">
-            <i class="fa-solid fa-film"></i>
-          </div>
+          <div class="card-icon"><i class="fa-solid fa-film"></i></div>
           <div class="card-title">Custom Posters</div>
           <div class="card-desc">Generator template poster ulasan film siap post untuk media sosial.</div>
         </a>
 
-        <!-- Tombol 3: Movie Collage -->
         <a href="./movie-collage/" class="menu-card">
           <div class="card-badge">Active</div>
-          <div class="card-icon">
-            <i class="fa-solid fa-layer-group"></i>
-          </div>
+          <div class="card-icon"><i class="fa-solid fa-layer-group"></i></div>
           <div class="card-title">Movie Collage</div>
           <div class="card-desc">Buat kolase poster film bertema bebas dengan kustomisasi judul sesukamu.</div>
         </a>
 
-        <!-- Tombol 4: Year in Review -->
         <a href="./year-in-review/" class="menu-card">
           <div class="card-badge">Active</div>
-          <div class="card-icon">
-            <i class="fa-solid fa-chart-pie"></i>
-          </div>
+          <div class="card-icon"><i class="fa-solid fa-chart-pie"></i></div>
           <div class="card-title">Year in Review</div>
           <div class="card-desc">Rangkuman statistik tahunan film yang telah ditonton beserta rekap data lengkap.</div>
         </a>
       </div>
     </div>
-
-    <!-- Footer Bawah -->
-    <div class="home-footer">
-      Inspired by Letterboxd. Built by Hwang with AI
-    </div>
+    <div class="home-footer">Inspired by Letterboxd. Built by Hwang with AI</div>
   </div>
 
   <script>
-    /* ================================================================
-       KUNCI DESKTOP
-       ================================================================ */
     function isUnsupportedDevice() {
       const ua = navigator.userAgent || '';
       const mq = q => !!(window.matchMedia && window.matchMedia(q).matches);
       const touchPoints = navigator.maxTouchPoints || 0;
-
       const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile|BlackBerry|webOS/i.test(ua);
       const uaDataMobile = !!(navigator.userAgentData && navigator.userAgentData.mobile);
       const macTouch = /Macintosh/i.test(ua) && touchPoints > 1;          
       const touchOnly = touchPoints > 0 && !mq('(any-pointer: fine)');    
       const coarsePrimary = mq('(pointer: coarse)') || mq('(hover: none)');
       const smallScreen = screen.width > 0 && Math.min(screen.width, screen.height) < 480;
-
       return mobileUA || uaDataMobile || macTouch || touchOnly || coarsePrimary || smallScreen;
     }
 
@@ -357,42 +151,22 @@
       document.documentElement.classList.toggle('mobile-blocked', blocked);
       return blocked;
     }
-
     applyDeviceGate();
 
-    /* ================================================================
-       LOAD BACKGROUND DARI SPREADSHEET (DENGAN FALLBACK IMGBB)
-       ================================================================ */
-    const BG_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQvAF1umoNPkLzc7_T948TZOrKVp2FY9qg_7cSOHM380P3-i0fm2u-wGc5ks4OC89L03EDRNcZ8xyGc/pub?gid=0&single=true&output=csv";
+    window.addEventListener('load', () => {
+      document.body.classList.add('loaded');
+      setTimeout(() => document.getElementById('bgLayer').classList.add('loaded'), 100);
+    });
 
-    Papa.parse(BG_SHEET_CSV_URL, {
-      download: true,
-      header: false,
-      skipEmptyLines: true,
-      complete: function(results) {
-        let bgUrl = "https://i.ibb.co.com/N2kZsRV6/p2914240511.jpg"; // Default ImgBB
-        if (results.data && results.data.length > 0 && results.data[0].length > 0) {
-          const sheetUrl = results.data[0][0].trim();
-          if (sheetUrl && sheetUrl.startsWith("http")) {
-            bgUrl = sheetUrl;
-          }
-        }
-        
-        const bgLayer = document.getElementById("bgLayer");
-        bgLayer.style.backgroundImage = `url('${bgUrl}')`;
-        setTimeout(() => {
-          bgLayer.classList.add("loaded");
-        }, 100);
-      },
-      error: function() {
-        const bgLayer = document.getElementById("bgLayer");
-        bgLayer.style.backgroundImage = `url('https://i.ibb.co.com/N2kZsRV6/p2914240511.jpg')`;
-        setTimeout(() => {
-          bgLayer.classList.add("loaded");
-        }, 100);
-      }
+    // ANIMASI KLIK MENU
+    document.querySelectorAll('.menu-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        e.preventDefault(); 
+        const targetUrl = this.getAttribute('href');
+        document.body.classList.add('fade-out');
+        setTimeout(() => { window.location.href = targetUrl; }, 400);
+      });
     });
   </script>
-
 </body>
 </html>
