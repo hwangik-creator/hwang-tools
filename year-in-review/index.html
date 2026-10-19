@@ -4,110 +4,103 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Letterboxd Wrapped Generator (ZIP Only)</title>
-  <!-- JSZip untuk membaca ZIP -->
+  
+  <!-- JSZip, PapaParse, html2canvas, FontAwesome -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <!-- PapaParse untuk membaca CSV -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <!-- html2canvas untuk Ekspor Gambar -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- FontAwesome 6 untuk Ikon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
+    /* =========================================================
+       PERBAIKAN 1: SETTING DASAR HITAM & TRANSISI HALAMAN
+       ========================================================= */
+    html, body { 
+      width: 100%; 
+      background-color: #06080d !important; /* Paksa hitam biar gak flash putih */
+      color: #ffffff; 
+      margin: 0;
+      padding: 0;
+    }
+    
+    body { 
+      min-height: 100vh; 
+      padding: 12px; 
+      display: flex; 
+      position: relative; 
+      /* Animasi masuk (fade in) */
+      animation: fadeInPage 0.5s ease forwards; 
+    }
+    
+    @keyframes fadeInPage { 
+      from { opacity: 0; } 
+      to { opacity: 1; } 
+    }
+    
+    /* Animasi keluar (fade out) */
+    body.fade-out { 
+      opacity: 0 !important; 
+      transition: opacity 0.4s ease; 
+    }
+
+    /* =========================================================
+       PERBAIKAN 2: BACKGROUND LOKAL & TOMBOL BACK
+       ========================================================= */
+    #bgLayer { 
+      position: fixed; 
+      inset: 0; 
+      z-index: 0; 
+      background-image: url('../bg.jpg') !important; /* LOCAL BG */
+      background-size: cover; 
+      background-position: center; 
+      background-repeat: no-repeat; 
+      opacity: 1 !important; /* Langsung nyala */
+      pointer-events: none; 
+    }
+    /* Overlay gelap tambahan di atas bg */
+    #bgLayer::before {
+      content: ""; position: absolute; inset: 0; 
+      background: rgba(6, 8, 13, 0.35); z-index: -1;
+    }
+
+    .btn-back-home {
+      position: fixed; top: 20px; left: 20px; z-index: 9999;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
+      padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff;
+      text-decoration: none; cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
+
+    /* =========================================================
+       STYLE ASLI BAWAAN FILE KAMU (TIDAK DIUBAH)
+       ========================================================= */
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
 
     :root {
-      --accent: #00e054;    /* hijau Letterboxd */
-      --accent2: #ff8000;   /* oranye Letterboxd */
-
-      /* Gelap tipis di atas foto background (0 = foto asli, 1 = hitam penuh) */
+      --accent: #00e054;
+      --accent2: #ff8000;
       --bg-dim: 0.35;
-      /* EFEK KACA DI LAYAR (tidak ikut ke PNG) */
       --panel-bg: rgba(20, 24, 28, 0.72);
       --panel-blur: 12px;
-
-      /* TATA LETAK: kedua panel sama tinggi (setinggi layar).
-         Panel kanan mengikuti bentuk kartu 9:16, panel kiri mengisi sisanya.
-         30px = jarak dalam panel kanan (14px x 2) + garis tepi (1px x 2). */
       --gap: 28px;
       --stage-h: min(calc(100vh - 24px), calc((100vw - 392px - 30px) * 1.7778 + 30px), 1100px);
       --stage-w: calc((var(--stage-h) - 30px) * 0.5625 + 30px);
       --left-w: clamp(340px, calc(var(--stage-w) * 1.1), 520px);
     }
 
-    html,  { width: 100%; background-color: #06080d; color: #ffffff; }
-
-    body {
-      min-height: 100vh;
-      padding: 12px;
-      display: flex;
-      position: relative;
-    }
-
-    /* LATAR BELAKANG HALAMAN (foto dari link di Google Sheet), tidak ikut ke PNG */
-    #bgLayer {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      opacity: 0;
-      transition: opacity 0.6s ease;
-      pointer-events: none;
-    }
-    #bgLayer.loaded { opacity: 1; }
-
     .main-layout {
-      position: relative;
-      z-index: 1;
-      margin: auto;
-      height: var(--stage-h);
-      display: grid;
-      grid-template-columns: var(--left-w) var(--stage-w);
-      column-gap: var(--gap);
-      align-items: stretch;
+      position: relative; z-index: 1; margin: auto; height: var(--stage-h);
+      display: grid; grid-template-columns: var(--left-w) var(--stage-w);
+      column-gap: var(--gap); align-items: stretch;
     }
 
-    /* ===== PESAN "HANYA DESKTOP" ===== */
-    .desktop-notice {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: #06080d;
-      overflow-y: auto;
-    }
-    .dn-card {
-      max-width: 420px;
-      margin: auto;
-      text-align: center;
-      background: rgba(20, 24, 28, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 14px;
-      padding: 26px 22px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    .dn-icon {
-      width: 56px; height: 56px;
-      margin: 0 auto 10px auto;
-      border-radius: 50%;
-      background: rgba(0, 224, 84, 0.12);
-      border: 1px solid rgba(0, 224, 84, 0.35);
-      color: var(--accent);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 24px;
-    }
-    .dn-badge {
-      display: inline-block;
-      font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
-      color: #14181c; background: var(--accent);
-      padding: 2px 10px; border-radius: 10px;
-      margin-bottom: 10px;
-    }
+    .desktop-notice { display: none; position: fixed; inset: 0; z-index: 50; align-items: center; justify-content: center; padding: 20px; background: #06080d; overflow-y: auto; }
+    .dn-card { max-width: 420px; margin: auto; text-align: center; background: rgba(20, 24, 28, 0.9); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 14px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+    .dn-icon { width: 56px; height: 56px; margin: 0 auto 10px auto; border-radius: 50%; background: rgba(0, 224, 84, 0.12); border: 1px solid rgba(0, 224, 84, 0.35); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .dn-badge { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #14181c; background: var(--accent); padding: 2px 10px; border-radius: 10px; margin-bottom: 10px; }
     .dn-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
     .dn-text { font-size: 13px; line-height: 1.6; color: #c0d0e0; }
     .dn-note { font-size: 11.5px; line-height: 1.5; color: #8a9bb0; margin-top: 10px; }
@@ -115,93 +108,29 @@
 
     html.mobile-blocked .main-layout { display: none !important; }
     html.mobile-blocked .desktop-notice { display: flex; }
+    @media (hover: none), (pointer: coarse) { .main-layout { display: none !important; } .desktop-notice { display: flex; } }
 
-    /* Cadangan lewat CSS murni (kalau JavaScript tidak berjalan): perangkat dengan input sentuh */
-    @media (hover: none), (pointer: coarse) {
-      .main-layout { display: none !important; }
-      .desktop-notice { display: flex; }
-    }
-
-    /* ===== PANEL KIRI ===== */
     .control-panel {
-      height: 100%;
-      min-height: 0;
-      background: var(--panel-bg);
-      -webkit-backdrop-filter: blur(var(--panel-blur));
-      backdrop-filter: blur(var(--panel-blur));
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      height: 100%; min-height: 0; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur));
+      border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
-    .panel-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
+    .panel-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
     .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; flex: 0 0 auto; }
     .form-group > label { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    input[type="text"], select {
-      background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 8px; border-radius: 6px; font-size: 11.5px; outline: none; width: 100%;
-    }
+    input[type="text"], select { background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 8px; border-radius: 6px; font-size: 11.5px; outline: none; width: 100%; }
     input[type="text"]:focus, select:focus { border-color: var(--accent); }
 
-    input[type="file"] {
-      color: #8a9bb0;
-      background: #0f1115;
-      border: 1px solid #2c3440;
-      padding: 4px;
-      border-radius: 6px;
-      font-size: 11px;
-      cursor: pointer;
-      width: 100%;
-    }
-    input[type="file"]::file-selector-button {
-      background: #222a33;
-      color: #ffffff;
-      border: 1px solid #3a4654;
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-right: 8px;
-    }
+    input[type="file"] { color: #8a9bb0; background: #0f1115; border: 1px solid #2c3440; padding: 4px; border-radius: 6px; font-size: 11px; cursor: pointer; width: 100%; }
+    input[type="file"]::file-selector-button { background: #222a33; color: #ffffff; border: 1px solid #3a4654; padding: 6px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; margin-right: 8px; }
     input[type="file"]::file-selector-button:hover { background: #2c3846; }
 
-    .hint {
-      font-size: 10.5px;
-      line-height: 1.45;
-      color: #9ab1c2;
-      background: rgba(15, 17, 21, 0.7);
-      border: 1px solid rgba(44, 52, 64, 0.8);
-      border-radius: 8px;
-      padding: 7px 9px;
-    }
+    .hint { font-size: 10.5px; line-height: 1.45; color: #9ab1c2; background: rgba(15, 17, 21, 0.7); border: 1px solid rgba(44, 52, 64, 0.8); border-radius: 8px; padding: 7px 9px; }
     .hint i { color: var(--accent); margin-right: 4px; }
 
-    .status-box {
-      font-size: 11px;
-      color: #F4D160;
-      background: rgba(15, 17, 21, 0.7);
-      border: 1px solid rgba(44, 52, 64, 0.8);
-      padding: 8px 10px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      line-height: 1.45;
-      flex: 0 0 auto;
-    }
+    .status-box { font-size: 11px; color: #F4D160; background: rgba(15, 17, 21, 0.7); border: 1px solid rgba(44, 52, 64, 0.8); padding: 8px 10px; border-radius: 8px; margin-bottom: 12px; line-height: 1.45; flex: 0 0 auto; }
 
-    /* Tombol slide: 5 tombol dibagi rapi (3 di baris pertama, 2 di baris kedua), tanpa petak kosong */
     .tab-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
     .tab-grid .btn:nth-child(-n+3) { grid-column: span 2; }
     .tab-grid .btn:nth-child(n+4) { grid-column: span 3; }
@@ -214,42 +143,13 @@
     .btn-export:hover { background: #e07000; }
     .btn-all { background: #3b82f6; color: #ffffff; width: 100%; padding: 10px; margin-top: 6px; }
 
-    /* ===== PANEL KANAN (pratinjau) ===== */
-    .stage-panel {
-      position: relative;
-      height: 100%;
-      background: var(--panel-bg);
-      -webkit-backdrop-filter: blur(var(--panel-blur));
-      backdrop-filter: blur(var(--panel-blur));
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
+    .stage-panel { position: relative; height: 100%; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .stage-inner { position: absolute; inset: 14px; overflow: hidden; }
 
-    .card-holder {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 450px;
-      height: 800px;
-      transform: scale(var(--s, 1));
-      transform-origin: top left;
-    }
+    .card-holder { position: absolute; top: 0; left: 0; width: 450px; height: 800px; transform: scale(var(--s, 1)); transform-origin: top left; }
     .card-holder .recap-card { position: absolute; top: 0; left: 0; }
 
-    /* ===== KARTU 9:16 (450 x 800) -> diekspor 1080 x 1920 ===== */
-    .recap-card {
-      width: 450px;
-      height: 800px;
-      background-color: transparent;
-      padding: 30px 24px 22px 24px;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-    }
+    .recap-card { width: 450px; height: 800px; background-color: transparent; padding: 30px 24px 22px 24px; border-radius: 12px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 
     .slide { display: none; flex: 1 1 0; min-height: 0; flex-direction: column; }
     .slide.active { display: flex; }
@@ -259,28 +159,9 @@
     .card-title { font-size: 25px; font-weight: 800; line-height: 1.15; margin-top: 3px; letter-spacing: -0.3px; }
     .header-accent { width: 40px; height: 3px; background: var(--accent2); margin: 8px auto 0 auto; border-radius: 2px; }
 
-    .slide-body {
-      flex: 1 1 0;
-      min-height: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .box {
-      background: rgba(15, 17, 21, 0.7);
-      border: 1px solid rgba(44, 52, 64, 0.8);
-      border-radius: 10px;
-      padding: 10px 12px;
-    }
-    .box-title {
-      font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
-      color: var(--accent); text-transform: uppercase;
-      margin-bottom: 8px;
-      display: flex; align-items: center; gap: 6px;
-    }
+    .slide-body { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+    .box { background: rgba(15, 17, 21, 0.7); border: 1px solid rgba(44, 52, 64, 0.8); border-radius: 10px; padding: 10px 12px; }
+    .box-title { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 
     .hero { text-align: center; padding: 4px 0; }
     .hero-num { font-size: 88px; font-weight: 900; line-height: 1; color: #ffffff; letter-spacing: -2px; }
@@ -299,7 +180,6 @@
     .metric-lbl { font-size: 9.5px; color: #8a9bb0; font-weight: 600; margin-top: 3px; }
     .metric-sub { font-size: 9px; color: var(--accent); font-weight: 700; margin-top: 2px; }
 
-    /* Diagram batang */
     .bars { display: flex; align-items: flex-end; gap: 4px; }
     .bar-col { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
     .bar-val { font-size: 8.5px; font-weight: 700; color: #c0d0e0; height: 12px; line-height: 12px; }
@@ -310,7 +190,6 @@
     .bar-labels { display: flex; gap: 4px; margin-top: 4px; }
     .bar-labels span { flex: 1; min-width: 0; text-align: center; font-size: 8.5px; color: #8a9bb0; font-weight: 600; }
 
-    /* Heatmap kalender */
     .heatmap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
     .mini-title { font-size: 9px; font-weight: 700; color: #8a9bb0; margin-bottom: 3px; text-transform: uppercase; }
     .mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
@@ -321,18 +200,8 @@
     .cell.l3 { background: rgba(0, 224, 84, 0.80); }
     .cell.l4 { background: #00e054; }
 
-    /* Slide 5: perbandingan */
     .year-rows { display: flex; flex-direction: column; gap: 6px; }
-    .year-row {
-      display: grid;
-      grid-template-columns: 46px 1fr auto 52px;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      background: rgba(15, 17, 21, 0.6);
-      border: 1px solid rgba(44, 52, 64, 0.8);
-      border-radius: 8px;
-    }
+    .year-row { display: grid; grid-template-columns: 46px 1fr auto 52px; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(15, 17, 21, 0.6); border: 1px solid rgba(44, 52, 64, 0.8); border-radius: 8px; }
     .year-row.current { border-color: var(--accent); }
     .yr-year { font-size: 14px; font-weight: 800; }
     .yr-films { font-size: 11px; font-weight: 700; color: #c0d0e0; }
@@ -344,16 +213,7 @@
 
     .empty-note { font-size: 11px; color: #8a9bb0; text-align: center; padding: 14px 0; }
 
-    /* FOOTER (sama dengan project sebelumnya) */
-    .user-profile-card {
-      flex: 0 0 auto;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding-top: 7px;
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+    .user-profile-card { flex: 0 0 auto; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 7px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between; }
     .lbxd-brand { display: flex; align-items: center; gap: 6px; }
     .lbxd-dots { font-size: 10.5px; letter-spacing: -2px; line-height: 1; }
     .brand-name { font-size: 10.5px; font-weight: 800; color: #ffffff; }
@@ -361,7 +221,6 @@
     .user-handle-info .handle-text { font-size: 10px; font-weight: 700; color: #ffffff; }
     .user-handle-info .sub-cta { font-size: 7.5px; color: #8a9bb0; text-transform: uppercase; letter-spacing: 0.8px; }
 
-    /* Jendela desktop yang sempit: panel ditumpuk ke bawah */
     @media (max-width: 900px) {
       .main-layout { width: 100%; height: auto; grid-template-columns: 1fr; column-gap: 0; row-gap: 15px; }
       .control-panel { height: auto; overflow-y: visible; }
@@ -372,45 +231,11 @@
 </head>
 <body>
 
-<!-- TOMBOL BACK & OVERRIDE BG -->
-<style>
-  /* Transisi Halaman Masuk */
-  body { animation: fadeInPage 0.5s ease forwards; }
-  @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
-  body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
-
-  /* Background Lokal (Override Google Sheet) */
-  #bgLayer { background-image: url('../bg.jpg') !important; background-size: cover; background-position: center; opacity: 1 !important; }
-  #bgLayer::before { content: ""; position: absolute; inset: 0; background: rgba(6, 8, 13, 0.35); z-index: -1; }
-  
-  /* Tombol Back Melayang */
-  .btn-back-home {
-    position: fixed; top: 20px; left: 20px; z-index: 9999;
-    display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
-    padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff;
-    text-decoration: none; cursor: pointer; transition: all 0.2s ease;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
-  .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
-</style>
-
 <!-- Tombol Back Fisik -->
 <a href="../" class="btn-back-home" onclick="goBackHome(event)">
   <i class="fa-solid fa-arrow-left"></i> Kembali ke Home
 </a>
 
-<script>
-  // Animasi Kembali ke Home
-  function goBackHome(e) {
-    e.preventDefault();
-    document.body.classList.add('fade-out');
-    setTimeout(() => { window.location.href = '../'; }, 400);
-  }
-</script>
-<!-- END TOMBOL BACK -->
-  
 <!-- PESAN: HANYA DAPAT DIAKSES VIA DESKTOP -->
 <div class="desktop-notice" id="desktopNotice" role="alert">
   <div class="dn-card">
@@ -424,7 +249,7 @@
   </div>
 </div>
 
-<!-- Lapisan background halaman (diisi otomatis dari Google Sheet) -->
+<!-- Lapisan background halaman -->
 <div id="bgLayer"></div>
 
 <div class="main-layout">
@@ -509,11 +334,16 @@
 
 <script>
   /* ================================================================
+     ANIMASI KEMBALI KE HOME
+     ================================================================ */
+  function goBackHome(e) {
+    e.preventDefault();
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = '../'; }, 400);
+  }
+
+  /* ================================================================
      KUNCI DESKTOP
-     Halaman ini hanya untuk desktop. Pengecekan TIDAK bergantung pada lebar halaman,
-     jadi mode "Situs desktop" di peramban ponsel tidak membantu. Yang diperiksa:
-     jenis peramban, perangkat sentuh tanpa mouse/trackpad, input utama sentuhan,
-     iPhone/iPad yang menyamar sebagai Mac, dan ukuran layar fisik.
      ================================================================ */
   function isUnsupportedDevice() {
     const ua = navigator.userAgent || '';
@@ -522,8 +352,8 @@
 
     const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile|BlackBerry|webOS/i.test(ua);
     const uaDataMobile = !!(navigator.userAgentData && navigator.userAgentData.mobile);
-    const macTouch = /Macintosh/i.test(ua) && touchPoints > 1;          // iPhone/iPad dengan "Request Desktop Website"
-    const touchOnly = touchPoints > 0 && !mq('(any-pointer: fine)');    // layar sentuh tanpa mouse/trackpad
+    const macTouch = /Macintosh/i.test(ua) && touchPoints > 1;
+    const touchOnly = touchPoints > 0 && !mq('(any-pointer: fine)');
     const coarsePrimary = mq('(pointer: coarse)') || mq('(hover: none)');
     const smallScreen = screen.width > 0 && Math.min(screen.width, screen.height) < 480;
 
@@ -541,18 +371,13 @@
   /* ================================================================
      PENGATURAN
      ================================================================ */
-  // Background dari Google Sheet (sel berisi link gambar https://...)
   const BG_SHEET_CSV_URL = "";
 
-  // Ukuran: kartu 450x800 diekspor ke lebar 1080 -> PNG tepat 1080x1920
   const BASE_W = 450;
   const BASE_H = 800;
   const EXPORT_W = 1080;
 
-  // 'unique'  = jumlah film dihitung per film unik (rewatch tidak menambah jumlah film)
-  // 'entries' = jumlah film = semua baris diary
   const COUNT_MODE = 'unique';
-
   const SLIDE_COUNT = 5;
 
   const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -591,34 +416,10 @@
   function dateShort(m, d) { return `${d} ${MONTHS_SHORT[m - 1]}`; }
 
   /* ================================================================
-     BACKGROUND DARI GOOGLE SHEET
+     BACKGROUND DARI GOOGLE SHEET (DIMATIKAN)
      ================================================================ */
   async function loadBackgroundFromSheet() {
     if (!BG_SHEET_CSV_URL) return;
-    try {
-      const sep = BG_SHEET_CSV_URL.includes('?') ? '&' : '?';
-      const res = await fetch(BG_SHEET_CSV_URL + sep + 't=' + Date.now());
-      if (!res.ok) throw new Error("Sheet tidak bisa dibaca: " + res.status);
-      const text = await res.text();
-
-      const parsed = Papa.parse(text, { header: false, skipEmptyLines: true });
-      const cells = [].concat(...parsed.data).map(c => String(c).trim());
-      const url = cells.find(c => /^https?:\/\//i.test(c));
-      if (!url) { console.warn("Tidak ada link gambar (https://...) di Sheet."); return; }
-
-      const img = new Image();
-      img.onload = () => {
-        const layer = $('bgLayer');
-        const safeUrl = url.replace(/"/g, '%22');
-        layer.style.backgroundImage =
-          `linear-gradient(rgba(6,8,13,var(--bg-dim)), rgba(6,8,13,var(--bg-dim))), url("${safeUrl}")`;
-        layer.classList.add('loaded');
-      };
-      img.onerror = () => console.warn("Gambar background tidak bisa dimuat:", url);
-      img.src = url;
-    } catch (err) {
-      console.warn("Background dilewati:", err);
-    }
   }
 
   /* ================================================================
@@ -1225,9 +1026,6 @@
 
   /* ================================================================
      EXPORT
-     Kartu disalin ke area tersembunyi dengan ukuran asli (450 x 800 px, tanpa zoom
-     pratinjau), hanya berisi slide yang diekspor, dengan latar SOLID.
-     Hasil: tepat 1080 x 1920 px.
      ================================================================ */
   async function renderCardToCanvas(n) {
     const clone = $('exportCard').cloneNode(true);
@@ -1304,7 +1102,6 @@
      INISIALISASI
      ================================================================ */
   window.onload = () => {
-    // Perangkat non-desktop: berhenti di sini, hanya pesan "Hanya Tersedia di Desktop" yang tampil
     if (applyDeviceGate()) return;
 
     updateHandle();
