@@ -5,190 +5,107 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Movie Collage</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2306080d'/%3E%3Ctext x='50' y='72' font-size='60' fill='%2300e054' text-anchor='middle' font-family='Arial, sans-serif'%3E%F0%9F%97%82%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <!-- Library html2canvas untuk Ekspor Gambar -->
+  
+  <!-- Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- Library PapaParse untuk membaca CSV dari Google Sheet (background) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <!-- Google Fonts & FontAwesome 6 untuk Ikon -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
+    /* =========================================================
+       PERBAIKAN 1: DASAR HITAM & ANIMASI (BIAR GAK FLASH PUTIH)
+       ========================================================= */
+    html, body { 
+      width: 100%; 
+      background-color: #06080d !important; /* Paksa hitam */
+      color: #ffffff; 
+      margin: 0; 
+      padding: 0; 
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+    body { 
+      min-height: 100vh; 
+      padding: 12px; 
+      display: flex; 
+      position: relative; 
+      animation: fadeInPage 0.5s ease forwards; 
+    }
+    @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
+    body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
+
+    /* =========================================================
+       PERBAIKAN 2: BACKGROUND LOKAL & TOMBOL BACK
+       ========================================================= */
+    #bgLayer { 
+      position: fixed; inset: 0; z-index: 0; 
+      background-image: url('../bg.jpg') !important; 
+      background-size: cover; background-position: center; background-repeat: no-repeat; 
+      opacity: 1 !important; pointer-events: none; 
+    }
+    /* Overlay gelap di atas bg (z-index: 1 biar gak ketutup) */
+    #bgLayer::before { 
+      content: ""; position: absolute; inset: 0; 
+      background: rgba(6, 8, 13, 0.35); z-index: 1; 
+    }
+
+    .btn-back-home {
+      position: fixed; top: 20px; left: 20px; z-index: 9999;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
+      padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff;
+      text-decoration: none; cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
+
+    /* =========================================================
+       STYLE ASLI BAWAAN (TIDAK DIUBAH)
+       ========================================================= */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      /* Warna aksen project ini (kuning lembut). */
       --accent: #F4D160;
       --letterboxd-green: #00e054;
-
-      /* Gelap tipis di atas foto background (0 = foto asli, 1 = hitam penuh) */
       --bg-dim: 0.35;
-      /* EFEK KACA DI LAYAR (tidak ikut ke PNG) */
       --panel-bg: rgba(20, 24, 28, 0.72);
       --panel-blur: 12px;
-
-      /* TATA LETAK: kedua panel sama tinggi (setinggi layar). */
       --gap: 28px;
       --stage-h: min(calc(100vh - 24px), calc((100vw - 392px - 30px) * 1.7778 + 30px), 1100px);
       --stage-w: calc((var(--stage-h) - 30px) * 0.5625 + 30px);
       --left-w: clamp(340px, calc(var(--stage-w) * 1.1), 520px);
     }
 
-    html, body {
-      width: 100%;
-      background-color: #06080d;
-      color: #ffffff;
-    }
+    .main-layout { position: relative; z-index: 1; margin: auto; height: var(--stage-h); display: grid; grid-template-columns: var(--left-w) var(--stage-w); column-gap: var(--gap); align-items: stretch; }
 
-    body {
-      min-height: 100vh;
-      padding: 12px;
-      display: flex;
-      position: relative;
-    }
-
-    /* LATAR BELAKANG HALAMAN (foto dari link di Google Sheet). */
-    #bgLayer {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      opacity: 0;
-      transition: opacity 0.6s ease;
-      pointer-events: none;
-    }
-    #bgLayer.loaded { opacity: 1; }
-
-    /* ===== PESAN "HANYA DESKTOP" (Sama Persis Seperti Kalender Claude) ===== */
-    .desktop-notice {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: #06080d;
-      overflow-y: auto;
-    }
-    .dn-card {
-      max-width: 420px;
-      margin: auto;
-      text-align: center;
-      background: rgba(20, 24, 28, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 14px;
-      padding: 26px 22px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    .dn-icon {
-      width: 56px; height: 56px;
-      margin: 0 auto 10px auto;
-      border-radius: 50%;
-      background: rgba(0, 224, 84, 0.12);
-      border: 1px solid rgba(0, 224, 84, 0.35);
-      color: var(--letterboxd-green);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 24px;
-    }
-    .dn-badge {
-      display: inline-block;
-      font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
-      color: #14181c; background: var(--letterboxd-green);
-      padding: 2px 10px; border-radius: 10px;
-      margin-bottom: 10px;
-    }
+    .desktop-notice { display: none; position: fixed; inset: 0; z-index: 50; align-items: center; justify-content: center; padding: 20px; background: #06080d; overflow-y: auto; }
+    .dn-card { max-width: 420px; margin: auto; text-align: center; background: rgba(20, 24, 28, 0.9); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 14px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+    .dn-icon { width: 56px; height: 56px; margin: 0 auto 10px auto; border-radius: 50%; background: rgba(0, 224, 84, 0.12); border: 1px solid rgba(0, 224, 84, 0.35); color: var(--letterboxd-green); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .dn-badge { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #14181c; background: var(--letterboxd-green); padding: 2px 10px; border-radius: 10px; margin-bottom: 10px; }
     .dn-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; font-family: 'Inter', sans-serif; }
     .dn-text { font-size: 13px; line-height: 1.6; color: #c0d0e0; font-family: 'Inter', sans-serif; }
 
     html.mobile-blocked .main-layout { display: none !important; }
     html.mobile-blocked .desktop-notice { display: flex; }
+    @media (hover: none), (pointer: coarse) { .main-layout { display: none !important; } .desktop-notice { display: flex; } }
 
-    /* Cadangan lewat CSS murni (kalau JavaScript tidak berjalan) */
-    @media (hover: none), (pointer: coarse) {
-      .main-layout { display: none !important; }
-      .desktop-notice { display: flex; }
-    }
+    .control-panel { height: 100%; min-height: 0; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 
-    .main-layout {
-      position: relative;
-      z-index: 1;
-      margin: auto;
-      height: var(--stage-h);
-      display: grid;
-      grid-template-columns: var(--left-w) var(--stage-w);
-      column-gap: var(--gap);
-      align-items: stretch;
-    }
-
-    /* PANEL KIRI: kaca transparan */
-    .control-panel {
-      height: 100%;
-      min-height: 0;
-      background: var(--panel-bg);
-      -webkit-backdrop-filter: blur(var(--panel-blur));
-      backdrop-filter: blur(var(--panel-blur));
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-
-    .panel-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
+    .panel-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
     .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
     .form-group.grow { flex: 1 1 auto; min-height: 0; }
     .form-group label { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
     .label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-
-    .counter {
-      font-size: 10px;
-      font-weight: 700;
-      color: #8a9bb0;
-      white-space: nowrap;
-    }
+    .counter { font-size: 10px; font-weight: 700; color: #8a9bb0; white-space: nowrap; }
     .counter.warn { color: #ff7b7b; }
 
-    input[type="text"], textarea {
-      background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 8px; border-radius: 6px; font-size: 11.5px; outline: none;
-    }
+    input[type="text"], textarea { background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 8px; border-radius: 6px; font-size: 11.5px; outline: none; }
     input[type="text"]:focus, textarea:focus { border-color: var(--accent); }
+    textarea { font-family: monospace; font-size: 10.5px; line-height: 1.5; resize: none; flex: 1 1 auto; min-height: 120px; white-space: pre; overflow: auto; }
 
-    textarea {
-      font-family: monospace;
-      font-size: 10.5px;
-      line-height: 1.5;
-      resize: none;
-      flex: 1 1 auto;
-      min-height: 120px;
-      white-space: pre;
-      overflow: auto;
-    }
-
-    .hint {
-      font-size: 10.5px;
-      line-height: 1.45;
-      color: #9ab1c2;
-      background: rgba(15, 17, 21, 0.7);
-      border: 1px solid rgba(44, 52, 64, 0.8);
-      border-radius: 8px;
-      padding: 8px 10px;
-      margin-top: 4px;
-    }
+    .hint { font-size: 10.5px; line-height: 1.45; color: #9ab1c2; background: rgba(15, 17, 21, 0.7); border: 1px solid rgba(44, 52, 64, 0.8); border-radius: 8px; padding: 8px 10px; margin-top: 4px; }
     .hint i { color: var(--accent); margin-right: 4px; }
     .hint strong { color: #ffffff; }
 
@@ -197,282 +114,65 @@
     .btn-export { background: var(--accent); color: #14181c; width: 100%; }
     .btn-export:hover { background: #e0be50; }
 
-    /* PANEL KANAN (pratinjau): kaca transparan */
-    .stage-panel {
-      position: relative;
-      height: 100%;
-      background: var(--panel-bg);
-      -webkit-backdrop-filter: blur(var(--panel-blur));
-      backdrop-filter: blur(var(--panel-blur));
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
+    .stage-panel { position: relative; height: 100%; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .stage-inner { position: absolute; inset: 14px; overflow: hidden; }
 
-    .stage-inner {
-      position: absolute;
-      inset: 14px;
-      overflow: hidden;
-    }
-
-    .card-holder {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 450px;
-      height: 800px;
-      transform: scale(var(--s, 1));
-      transform-origin: top left;
-    }
+    .card-holder { position: absolute; top: 0; left: 0; width: 450px; height: 800px; transform: scale(var(--s, 1)); transform-origin: top left; }
     .card-holder .recap-card { position: absolute; top: 0; left: 0; }
 
-    .recap-card {
-      width: 450px;
-      height: 800px;
-      background-color: transparent;
-      padding: 35px 24px 25px 24px;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-    }
+    .recap-card { width: 450px; height: 800px; background-color: transparent; padding: 35px 24px 25px 24px; border-radius: 12px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 
     .card-header { text-align: center; margin-bottom: 12px; flex: 0 0 auto; }
-    .custom-header-title {
-      font-size: 22px;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: -0.3px;
-      line-height: 1.25;
-      text-transform: capitalize;
-      overflow-wrap: break-word;
-      word-break: break-word;
-    }
-    .header-sub-accent {
-      width: 40px;
-      height: 3px;
-      background: var(--accent);
-      margin: 8px auto 0 auto;
-      border-radius: 2px;
-    }
+    .custom-header-title { font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; line-height: 1.25; text-transform: capitalize; overflow-wrap: break-word; word-break: break-word; }
+    .header-sub-accent { width: 40px; height: 3px; background: var(--accent); margin: 8px auto 0 auto; border-radius: 2px; }
 
-    .poster-area {
-      flex: 1 1 0;
-      min-height: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
+    .poster-area { flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+    .poster-grid { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; }
 
-    .poster-grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-content: center;
-    }
-
-    .poster-item {
-      position: relative;
-      flex: 0 0 auto;
-      border-radius: 8px;
-      overflow: hidden;
-      background-color: #242c34;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.08);
-      outline: 2px solid transparent;
-      outline-offset: -2px;
-      cursor: grab;
-      transition: transform 0.12s ease, outline-color 0.12s ease, opacity 0.12s ease;
-    }
+    .poster-item { position: relative; flex: 0 0 auto; border-radius: 8px; overflow: hidden; background-color: #242c34; box-shadow: 0 5px 15px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.08); outline: 2px solid transparent; outline-offset: -2px; cursor: grab; transition: transform 0.12s ease, outline-color 0.12s ease, opacity 0.12s ease; }
     .poster-item > * { pointer-events: none; }
     .poster-item > .poster-remove { pointer-events: auto; }
     .poster-item.selected { outline-color: var(--accent); }
     .poster-item.drag-over { outline-color: #ffffff; transform: scale(0.97); }
     .poster-item.dragging { opacity: 0.4; }
 
-    /* Poster dipotong dari tengah (cover) lewat JavaScript: posisi dan ukurannya dihitung
-       sendiri, jadi proporsi asli gambar terjaga dan tidak melar, di layar maupun di PNG. */
-    .poster-img {
-      display: block;
-      max-width: none;
-      user-select: none;
-    }
+    .poster-img { display: block; max-width: none; user-select: none; }
 
-    .poster-remove {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(0, 0, 0, 0.78);
-      color: #ffffff;
-      font-size: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.15s ease, background 0.15s ease;
-      z-index: 3;
-    }
+    .poster-remove { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; border: none; background: rgba(0, 0, 0, 0.78); color: #ffffff; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; z-index: 3; }
     .poster-remove:hover { background: #d62828; }
 
-    .poster-num {
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 5px;
-      border-radius: 9px;
-      background: rgba(0, 0, 0, 0.78);
-      color: var(--accent);
-      font-size: 10px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      z-index: 3;
-    }
-    .poster-item:hover .poster-remove,
-    .poster-item:hover .poster-num { opacity: 1; }
-    @media (hover: none) {
-      .poster-remove, .poster-num { opacity: 1; }
-    }
+    .poster-num { position: absolute; top: 4px; left: 4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: rgba(0, 0, 0, 0.78); color: var(--accent); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s ease; z-index: 3; }
+    .poster-item:hover .poster-remove, .poster-item:hover .poster-num { opacity: 1; }
+    @media (hover: none) { .poster-remove, .poster-num { opacity: 1; } }
 
-    .empty-hint {
-      position: absolute;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-size: 13px;
-      font-weight: 600;
-      color: #8a9bb0;
-      padding: 0 30px;
-    }
+    .empty-hint { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; font-size: 13px; font-weight: 600; color: #8a9bb0; padding: 0 30px; }
 
-    .user-profile-card {
-      flex: 0 0 auto;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding-top: 7px;
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .lbxd-brand {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .lbxd-dots {
-      font-size: 10.5px;
-      letter-spacing: -2px;
-      line-height: 1;
-    }
-
-    .brand-name {
-      font-size: 10.5px;
-      font-weight: 800;
-      color: #ffffff;
-    }
-
-    .user-handle-info {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-
-    .user-handle-info .handle-text {
-      font-size: 10px;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .user-handle-info .sub-cta {
-      font-size: 7.5px;
-      color: #8a9bb0;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-    }
+    .user-profile-card { flex: 0 0 auto; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 7px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .lbxd-brand { display: flex; align-items: center; gap: 6px; }
+    .lbxd-dots { font-size: 10.5px; letter-spacing: -2px; line-height: 1; }
+    .brand-name { font-size: 10.5px; font-weight: 800; color: #ffffff; }
+    .user-handle-info { display: flex; flex-direction: column; align-items: flex-end; }
+    .user-handle-info .handle-text { font-size: 10px; font-weight: 700; color: #ffffff; }
+    .user-handle-info .sub-cta { font-size: 7.5px; color: #8a9bb0; text-transform: uppercase; letter-spacing: 0.8px; }
 
     @media (max-width: 900px) {
-      .main-layout {
-        width: 100%;
-        height: auto;
-        grid-template-columns: 1fr;
-        column-gap: 0;
-        row-gap: 15px;
-      }
+      .main-layout { width: 100%; height: auto; grid-template-columns: 1fr; column-gap: 0; row-gap: 15px; }
       .control-panel { height: auto; overflow-y: visible; }
       .form-group.grow { flex: none; }
       textarea { min-height: 180px; }
-      .stage-panel {
-        height: auto;
-        width: 100%;
-        max-width: 480px;
-        margin: 0 auto;
-      }
-      .stage-panel::before {
-        content: "";
-        display: block;
-        padding-top: calc(177.78% - 21.78px);
-      }
+      .stage-panel { height: auto; width: 100%; max-width: 480px; margin: 0 auto; }
+      .stage-panel::before { content: ""; display: block; padding-top: calc(177.78% - 21.78px); }
     }
   </style>
 </head>
 <body>
-
-<!-- TOMBOL BACK & OVERRIDE BG -->
-<style>
-  /* Transisi Halaman Masuk */
-  body { animation: fadeInPage 0.5s ease forwards; }
-  @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
-  body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
-
-  /* Background Lokal (Override Google Sheet) */
-  #bgLayer { background-image: url('../bg.jpg') !important; background-size: cover; background-position: center; opacity: 1 !important; }
-  #bgLayer::before { content: ""; position: absolute; inset: 0; background: rgba(6, 8, 13, 0.35); z-index: -1; }
-  
-  /* Tombol Back Melayang */
-  .btn-back-home {
-    position: fixed; top: 20px; left: 20px; z-index: 9999;
-    display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
-    padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff;
-    text-decoration: none; cursor: pointer; transition: all 0.2s ease;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
-  .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
-</style>
 
 <!-- Tombol Back Fisik -->
 <a href="../" class="btn-back-home" onclick="goBackHome(event)">
   <i class="fa-solid fa-arrow-left"></i> Kembali ke Home
 </a>
 
-<script>
-  // Animasi Kembali ke Home
-  function goBackHome(e) {
-    e.preventDefault();
-    document.body.classList.add('fade-out');
-    setTimeout(() => { window.location.href = '../'; }, 400);
-  }
-</script>
-<!-- END TOMBOL BACK -->
-  
-<!-- PESAN: HANYA DAPAT DIAKSES VIA DESKTOP (Sama Persis Seperti Kalender Claude) -->
+<!-- PESAN: HANYA DAPAT DIAKSES VIA DESKTOP -->
 <div class="desktop-notice" id="desktopNotice" role="alert">
   <div class="dn-card">
     <div class="dn-icon"><i class="fa-solid fa-desktop"></i></div>
@@ -485,7 +185,7 @@
   </div>
 </div>
 
-<!-- Lapisan background halaman (diisi otomatis dari Google Sheet) -->
+<!-- Lapisan background halaman -->
 <div id="bgLayer"></div>
 
 <div class="main-layout">
@@ -570,8 +270,16 @@
 
 <script>
   /* ================================================================
+     ANIMASI KEMBALI KE HOME
+     ================================================================ */
+  function goBackHome(e) {
+    e.preventDefault();
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = '../'; }, 400);
+  }
+
+  /* ================================================================
      KUNCI DESKTOP
-     Pengecekan tidak bergantung pada lebar halaman (mode "Situs Desktop" HP terdeteksi mutlak)
      ================================================================ */
   function isUnsupportedDevice() {
     const ua = navigator.userAgent || '';
@@ -580,8 +288,8 @@
 
     const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile|BlackBerry|webOS/i.test(ua);
     const uaDataMobile = !!(navigator.userAgentData && navigator.userAgentData.mobile);
-    const macTouch = /Macintosh/i.test(ua) && touchPoints > 1;          // iPhone/iPad dengan "Request Desktop Website"
-    const touchOnly = touchPoints > 0 && !mq('(any-pointer: fine)');    // layar sentuh tanpa mouse/trackpad
+    const macTouch = /Macintosh/i.test(ua) && touchPoints > 1;          
+    const touchOnly = touchPoints > 0 && !mq('(any-pointer: fine)');    
     const coarsePrimary = mq('(pointer: coarse)') || mq('(hover: none)');
     const smallScreen = screen.width > 0 && Math.min(screen.width, screen.height) < 480;
 
@@ -597,7 +305,7 @@
   applyDeviceGate();
 
   /* ================================================================
-     PENGATURAN BACKGROUND
+     PENGATURAN BACKGROUND (DIMATIKAN)
      ================================================================ */
   const BG_SHEET_CSV_URL = "";
 
@@ -624,48 +332,16 @@
   let dragIndex = null;
   const imageCache = {};
   const inflight = {};
-  const placing = new Set(); // poster yang sedang dipasang (ditunggu sebelum export)
+  const placing = new Set();
   let postersTimer = null;
 
   async function loadBackgroundFromSheet() {
     if (!BG_SHEET_CSV_URL) return;
-
-    try {
-      const sep = BG_SHEET_CSV_URL.includes('?') ? '&' : '?';
-      const res = await fetch(BG_SHEET_CSV_URL + sep + 't=' + Date.now());
-      if (!res.ok) throw new Error("Sheet tidak bisa dibaca: " + res.status);
-      const text = await res.text();
-
-      const parsed = Papa.parse(text, { header: false, skipEmptyLines: true });
-      const cells = [].concat(...parsed.data).map(c => String(c).trim());
-      const url = cells.find(c => /^https?:\/\//i.test(c));
-      if (!url) {
-        console.warn("Tidak ada link gambar (https://...) di Sheet.");
-        return;
-      }
-
-      const img = new Image();
-      img.onload = () => {
-        const layer = $('bgLayer');
-        const safeUrl = url.replace(/"/g, '%22');
-        layer.style.backgroundImage =
-          `linear-gradient(rgba(6,8,13,var(--bg-dim)), rgba(6,8,13,var(--bg-dim))), url("${safeUrl}")`;
-        layer.classList.add('loaded');
-      };
-      img.onerror = () => console.warn("Gambar background tidak bisa dimuat:", url);
-      img.src = url;
-    } catch (err) {
-      console.warn("Background dilewati:", err);
-    }
   }
 
-  /* ================================================================
-     GAMBAR POSTER
-     ================================================================ */
   async function fetchImageAsBase64(url) {
     const cleanUrl = url.trim().replace(/^"|"$/g, '');
     const proxyList = [
-      // w = lebar maksimal, we = tanpa memperbesar, q = kualitas JPEG
       u => `https://images.weserv.nl/?url=${encodeURIComponent(u)}&w=800&we&q=92`,
       u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
     ];
@@ -699,8 +375,6 @@
     });
   }
 
-  /* Mengecilkan gambar bertahap (setengah demi setengah) dengan kualitas tinggi,
-     hanya kalau gambar jauh lebih besar dari yang dibutuhkan. Hasilnya halus, tidak bergerigi. */
   async function downscaleDataUrl(src, targetW) {
     if (!String(src).startsWith('data:')) return src;
     try {
@@ -734,11 +408,6 @@
     }
   }
 
-  /* Memasang poster ke dalam kotak dengan cara "cover":
-     - gambar diperbesar secukupnya sampai menutupi seluruh kotak, lalu dipotong dari tengah
-     - gambar yang kecil di-zoom (diperbesar), bukan ditarik
-     - proporsi asli gambar selalu terjaga, sehingga tidak melar di layar maupun di PNG
-     Rasio kotak diukur langsung dari tampilan. */
   async function placeCover(item, src) {
     const bw = item.clientWidth;
     const bh = item.clientHeight;
@@ -755,8 +424,8 @@
       img.onload = () => {
         const ri = img.naturalWidth / img.naturalHeight;
         let pw = 100, ph = 100;
-        if (ri > ratio) pw = (ri / ratio) * 100;  // gambar lebih lebar dari kotak: potong kiri-kanan
-        else ph = (ratio / ri) * 100;             // gambar lebih tinggi dari kotak: potong atas-bawah
+        if (ri > ratio) pw = (ri / ratio) * 100;
+        else ph = (ratio / ri) * 100;
         img.style.cssText =
           `position:absolute; width:${pw}%; height:${ph}%; left:${(100 - pw) / 2}%; top:${(100 - ph) / 2}%;`;
 
@@ -897,8 +566,6 @@
     $('emptyHint').style.display = posterUrls.length ? 'none' : 'flex';
     layoutGrid();
     updateCounter();
-
-    // Pasang poster yang sudah ada di cache (ukuran kotak sudah diketahui setelah layoutGrid)
     updateImagesFromCache();
   }
 
@@ -1059,8 +726,6 @@
       while (Object.keys(inflight).length) {
         await new Promise(r => setTimeout(r, 150));
       }
-
-      // Pastikan semua poster sudah selesai terpasang sebelum difoto
       updateImagesFromCache();
       while (placing.size) {
         await Promise.all([...placing]);
@@ -1085,11 +750,11 @@
   }
 
   window.onload = () => {
-    // Perangkat non-desktop: berhenti di sini, hanya pesan "Hanya Tersedia di Desktop" yang tampil
     if (applyDeviceGate()) return;
 
     $('inHeaderTitle').value = DEFAULT_TITLE;
-    $('inPosters').value = DEFAULT_POSTERS.join('\n');$('titleCounter').textContent = `${DEFAULT_TITLE.length}/${MAX_TITLE}`;
+    $('inPosters').value = DEFAULT_POSTERS.join('\n');
+    $('titleCounter').textContent = `${DEFAULT_TITLE.length}/${MAX_TITLE}`;
     updateHandle();
 
     applyPosterText();
