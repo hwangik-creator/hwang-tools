@@ -6,6 +6,7 @@
   <title>Year in Review</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2306080d'/%3E%3Ctext x='50' y='72' font-size='60' fill='%2300e054' text-anchor='middle' font-family='Arial, sans-serif'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
   
+  <!-- JSZip, PapaParse, html2canvas, FontAwesome -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -348,15 +349,10 @@
 
     if (parts.profile && parts.profile[0]) {
       username = (parts.profile[0]['Username'] || '').trim() || null;
-      
-      // PENGAMBILAN TANGGAL JOIN YANG LEBIH KUAT
-      // Kadang header CSV berupa 'Date Joined' atau 'Joined', kita cek semuanya
       const p = parts.profile[0];
       const joinStr = p['Date Joined'] || p['Joined'] || p['date_joined'] || p['joined'];
       
-      if (joinStr) {
-        joinDate = parseYMD(joinStr);
-      }
+      if (joinStr) joinDate = parseYMD(joinStr);
     }
 
     return {
@@ -683,9 +679,10 @@
       : '<div class="empty-note">Data tahun rilis tidak tersedia</div>';
     const n = v => (v === null || v === undefined) ? '-' : fmt(v);
 
+    // Sesuai permintaan: teks diubah menjadi "Bergabung Letterboxd Sejak"
     const joinDateStr = formatJoinDate(a.joinDate);
     const joinSubHTML = joinDateStr 
-      ? `<div class="hero-sub" style="margin-top: 8px; font-size: 12px; color: #00e054; font-weight: 700;"><i class="fa-solid fa-calendar-check"></i> Bergabung sejak ${joinDateStr}</div>` 
+      ? `<div class="hero-sub" style="margin-top: 8px; font-size: 12px; color: #00e054; font-weight: 700;"><i class="fa-solid fa-calendar-check"></i> Bergabung Letterboxd Sejak ${joinDateStr}</div>` 
       : '';
 
     $('slide4').innerHTML = headerHTML('Seluruh Riwayat', 'Sepanjang Waktu') + `
@@ -714,84 +711,87 @@
 
   function renderSlide5() {
     const targetYear = selectedYear;
-    const prevYear = model.years[targetYear - 1] ? targetYear - 1 : null;
-    const nextYear = model.years[targetYear + 1] ? targetYear + 1 : null;
+    
+    // LOGIKA BARU: Geser jendela 4 tahun agar selalu mengelilingi targetYear
+    let startYear = targetYear - 1; 
+    const availableYears = Object.keys(model.years).map(Number).sort((a,b) => a - b);
+    const minYear = availableYears[0];
+    const maxYear = availableYears[availableYears.length - 1];
 
-    const yData = model.years[targetYear];
-    const yFilms = yData ? yData.films : 0;
-    const pFilms = prevYear ? model.years[prevYear].films : 0;
-    const nFilms = nextYear ? model.years[nextYear].films : 0;
+    // Cegah jendela keluar dari batas tahun minimum/maksimum
+    if (startYear < minYear) startYear = minYear;
+    if (startYear + 3 > maxYear) startYear = maxYear - 3;
+    if (startYear < minYear) startYear = minYear; // Failsafe kalau total cuma < 4 tahun
 
-    let heroNum = fmt(yFilms);
-    let heroCls = 'accent';
-    let heroLbl = `film di tahun ${targetYear}`;
-    let heroSub = '';
-
-    if (prevYear && nextYear) {
-      const diffPrev = yFilms - pFilms;
-      const pctPrev = pFilms > 0 ? (diffPrev / pFilms) * 100 : 0;
-      const sign = diffPrev > 0 ? '+' : '';
-      
-      if (diffPrev === 0) { heroCls = 'flat'; heroSub = 'Sama dengan tahun sebelumnya'; }
-      else { heroCls = diffPrev > 0 ? 'up' : 'down'; heroSub = `${sign}${fmt(diffPrev)} (${sign}${pctPrev.toFixed(1)}%) vs ${prevYear}`; }
-    } else if (prevYear) {
-      const diffPrev = yFilms - pFilms;
-      const pctPrev = pFilms > 0 ? (diffPrev / pFilms) * 100 : 0;
-      const sign = diffPrev > 0 ? '+' : '';
-      
-      if (diffPrev === 0) { heroCls = 'flat'; heroSub = 'Sama dengan tahun sebelumnya'; }
-      else { heroCls = diffPrev > 0 ? 'up' : 'down'; heroSub = `${sign}${fmt(diffPrev)} (${sign}${pctPrev.toFixed(1)}%) vs ${prevYear}`; }
-    } else if (nextYear) {
-      heroCls = 'up';
-      heroSub = `Tahun pertama log. (${fmt(nFilms)} film di ${nextYear})`;
-    } else {
-      heroCls = 'flat'; heroSub = 'Belum ada pembanding';
+    const displayYears = [];
+    for (let i = 0; i < 4; i++) {
+      const y = startYear + i;
+      // Tetap tampilkan tahun kosong di sela-sela agar bagannya lurus
+      if (y <= maxYear || y <= targetYear + 2) {
+        displayYears.push(y);
+      }
     }
 
-    const chartData = [];
-    const chartLabels = [];
-    let highlightIdx = -1;
-    
-    if (prevYear) { chartData.push(pFilms); chartLabels.push(prevYear); }
-    chartData.push(yFilms); chartLabels.push(targetYear); highlightIdx = chartData.length - 1;
-    if (nextYear) { chartData.push(nFilms); chartLabels.push(nextYear); }
+    const newest = targetYear;
+    const prev = model.years[targetYear - 1] ? targetYear - 1 : null;
 
-    const chartHTML = barChartHTML(chartData, chartLabels, { height: 120, highlight: highlightIdx, hlClass: 'hl', showValues: true, maxBar: 70 });
+    let heroNum, heroCls, heroLbl, heroSub;
+    const yFilms = model.years[newest] ? model.years[newest].films : 0;
+    const pFilms = prev ? model.years[prev].films : 0;
 
-    let rows = [];
-    if (prevYear) rows.push({ year: prevYear, films: pFilms, isCurrent: false, diff: pFilms - (model.years[prevYear - 1] ? model.years[prevYear - 1].films : 0), hasPrev: !!model.years[prevYear - 1] });
-    rows.push({ year: targetYear, films: yFilms, isCurrent: true, diff: yFilms - (prevYear ? pFilms : 0), hasPrev: !!prevYear });
-    if (nextYear) rows.push({ year: nextYear, films: nFilms, isCurrent: false, diff: nFilms - yFilms, hasPrev: true });
+    if (prev) {
+      const diff = yFilms - pFilms;
+      const pct = pFilms > 0 ? (diff / pFilms) * 100 : 0;
+      const sign = diff > 0 ? '+' : '';
+      heroNum = `${sign}${fmt(diff)}`;
+      heroCls = diff > 0 ? 'up' : (diff < 0 ? 'down' : 'flat');
+      heroLbl = `film dibanding ${prev}`;
+      heroSub = `${fmt(yFilms)} film di ${newest} • ${sign}${pct.toFixed(1)}%`;
+    } else {
+      heroNum = fmt(yFilms);
+      heroCls = 'accent';
+      heroLbl = `film di ${newest}`;
+      heroSub = 'Belum ada data tahun sebelumnya';
+    }
 
-    const rowsHTML = rows.map(r => {
-      let badge = '<span class="gap-badge gap-neutral">-</span>';
-      if (r.hasPrev) {
-        const sign = r.diff > 0 ? '+' : '';
-        if (r.diff > 0) badge = `<span class="gap-badge gap-plus"><i class="fa-solid fa-arrow-trend-up"></i> ${sign}${r.diff}</span>`;
-        else if (r.diff < 0) badge = `<span class="gap-badge gap-minus"><i class="fa-solid fa-arrow-trend-down"></i> ${r.diff}</span>`;
-        else badge = '<span class="gap-badge gap-neutral"><i class="fa-solid fa-equals"></i> Sama</span>';
-      } else {
-        badge = '<span class="gap-badge gap-neutral">Tahun pertama</span>';
-      }
+    const values = displayYears.map(y => model.years[y] ? model.years[y].films : 0);
+    const hlIdx = displayYears.indexOf(targetYear);
+
+    const rows = [...displayYears].reverse().map(v => {
+      const d = model.years[v];
+      const films = d ? d.films : 0;
       
-      const avg = model.years[r.year] ? model.years[r.year].avg : 0;
-      return `<div class="year-row${r.isCurrent ? ' current' : ''}">
-        <div class="yr-year">${r.year}</div>
-        <div class="yr-films">${fmt(r.films)} film</div>
+      let badge = '<span class="gap-badge gap-neutral">-</span>';
+      const prevY = model.years[v - 1];
+      if (prevY) {
+        const diff = films - prevY.films;
+        const sign = diff > 0 ? '+' : '';
+        if (diff > 0) badge = `<span class="gap-badge gap-plus"><i class="fa-solid fa-arrow-trend-up"></i> ${sign}${diff}</span>`;
+        else if (diff < 0) badge = `<span class="gap-badge gap-minus"><i class="fa-solid fa-arrow-trend-down"></i> ${diff}</span>`;
+        else badge = '<span class="gap-badge gap-neutral"><i class="fa-solid fa-equals"></i> Sama</span>';
+      } else if (films > 0) {
+        badge = '<span class="gap-badge gap-neutral">Tahun pertama</span>';
+      } else {
+        badge = '<span class="gap-badge gap-neutral">Belum ada data</span>';
+      }
+
+      return `<div class="year-row${v === targetYear ? ' current' : ''}">
+        <div class="yr-year">${v}</div>
+        <div class="yr-films">${fmt(films)} film</div>
         <div>${badge}</div>
-        <div class="yr-avg">${avg > 0 ? '★ ' + Number(avg.toFixed(2)) : '-'}</div>
+        <div class="yr-avg">${d && d.avg > 0 ? '★ ' + Number(d.avg.toFixed(2)) : '-'}</div>
       </div>`;
     }).join('');
 
     let bestFilms = null;
-    rows.forEach(r => { if (r.films > 0 && (bestFilms === null || r.films > bestFilms.films)) bestFilms = r; });
+    displayYears.forEach(v => { if (model.years[v] && model.years[v].films > 0 && (bestFilms === null || model.years[v].films > model.years[bestFilms].films)) bestFilms = v; });
     let bestRated = null;
-    rows.forEach(r => {
-      const d = model.years[r.year];
-      if (d && d.rated >= 10 && (bestRated === null || d.avg > model.years[bestRated.year].avg)) bestRated = r;
+    displayYears.forEach(v => {
+      const d = model.years[v];
+      if (d && d.rated >= 10 && (bestRated === null || d.avg > model.years[bestRated].avg)) bestRated = v;
     });
 
-    $('slide5').innerHTML = headerHTML('Sekitar Tahun Terpilih', 'Perbandingan') + `
+    $('slide5').innerHTML = headerHTML('Perbandingan', 'Perbandingan') + `
       <div class="slide-body">
         <div class="hero">
           <div class="hero-num ${heroCls}" style="font-size:68px;">${heroNum}</div>
@@ -800,12 +800,12 @@
         </div>
         <div class="box">
           <div class="box-title"><i class="fa-solid fa-chart-column"></i> Film per Tahun</div>
-          ${chartHTML}
+          ${barChartHTML(values, displayYears, { height: 150, highlight: hlIdx, hlClass: 'hl', showValues: true, maxBar: 70 })}
         </div>
-        <div class="year-rows">${rowsHTML}</div>
+        <div class="year-rows">${rows}</div>
         <div class="metric-row two">
-          ${metricHTML(bestFilms !== null ? bestFilms.year : '-', 'Tahun Terbanyak', bestFilms !== null ? `${fmt(bestFilms.films)} film` : '')}
-          ${metricHTML(bestRated !== null ? bestRated.year : '-', 'Rating Tertinggi', bestRated !== null ? `rata-rata ${Number(model.years[bestRated.year].avg.toFixed(2))}` : '')}
+          ${metricHTML(bestFilms !== null ? bestFilms : '-', 'Tahun Terbanyak', bestFilms !== null ? `${fmt(model.years[bestFilms].films)} film` : '')}
+          ${metricHTML(bestRated !== null ? bestRated : '-', 'Rating Tertinggi', bestRated !== null ? `rata-rata ${Number(model.years[bestRated].avg.toFixed(2))}` : '')}
         </div>
       </div>`;
   }
@@ -844,7 +844,6 @@
     renderAll();
   }
 
-  // PERBAIKAN: Tambahkan render ulang saat pindah tab
   function switchSlide(n) {
     activeSlide = n;
     for (let i = 1; i <= SLIDE_COUNT; i++) {
@@ -852,7 +851,6 @@
       $('btnSlide' + i).className = 'btn ' + (i === n ? 'btn-active' : 'btn-inactive');
     }
     
-    // Render ulang slide yang aktif untuk memastikan data tahun terbaru
     if (n === 1) renderSlide1();
     else if (n === 2) renderSlide2();
     else if (n === 3) renderSlide3();
