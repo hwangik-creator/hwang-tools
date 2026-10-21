@@ -8,7 +8,7 @@
   
   <!-- JSZip, PapaParse, html2canvas, FontAwesome -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -18,51 +18,27 @@
        ========================================================= */
     html, body { 
       width: 100%; 
-      background-color: #06080d !important; /* Paksa hitam biar gak flash putih */
+      background-color: #06080d !important;
       color: #ffffff; 
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
     }
-    
     body { 
-      min-height: 100vh; 
-      padding: 12px; 
-      display: flex; 
-      position: relative; 
-      /* Animasi masuk (fade in) */
+      min-height: 100vh; padding: 12px; display: flex; position: relative; 
       animation: fadeInPage 0.5s ease forwards; 
     }
-    
-    @keyframes fadeInPage { 
-      from { opacity: 0; } 
-      to { opacity: 1; } 
-    }
-    
-    /* Animasi keluar (fade out) */
-    body.fade-out { 
-      opacity: 0 !important; 
-      transition: opacity 0.4s ease; 
-    }
+    @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
+    body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
 
     /* =========================================================
        PERBAIKAN 2: BACKGROUND LOKAL & TOMBOL BACK
        ========================================================= */
     #bgLayer { 
-      position: fixed; 
-      inset: 0; 
-      z-index: 0; 
-      background-image: url('../bg.jpg') !important; /* LOCAL BG */
-      background-size: cover; 
-      background-position: center; 
-      background-repeat: no-repeat; 
-      opacity: 1 !important; /* Langsung nyala */
-      pointer-events: none; 
+      position: fixed; inset: 0; z-index: 0; 
+      background-image: url('../bg.jpg') !important;
+      background-size: cover; background-position: center; background-repeat: no-repeat; 
+      opacity: 1 !important; pointer-events: none; 
     }
-    /* Overlay gelap tambahan di atas bg */
-    #bgLayer::before {
-      content: ""; position: absolute; inset: 0; 
-      background: rgba(6, 8, 13, 0.35); z-index: -1;
-    }
+    #bgLayer::before { content: ""; position: absolute; inset: 0; background: rgba(6, 8, 13, 0.35); z-index: 1; }
 
     .btn-back-home {
       position: fixed; top: 20px; left: 20px; z-index: 9999;
@@ -76,27 +52,19 @@
     .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
 
     /* =========================================================
-       STYLE ASLI BAWAAN FILE KAMU (TIDAK DIUBAH)
+       STYLE ASLI
        ========================================================= */
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
 
     :root {
-      --accent: #00e054;
-      --accent2: #ff8000;
-      --bg-dim: 0.35;
-      --panel-bg: rgba(20, 24, 28, 0.72);
-      --panel-blur: 12px;
-      --gap: 28px;
+      --accent: #00e054; --accent2: #ff8000; --bg-dim: 0.35;
+      --panel-bg: rgba(20, 24, 28, 0.72); --panel-blur: 12px; --gap: 28px;
       --stage-h: min(calc(100vh - 24px), calc((100vw - 392px - 30px) * 1.7778 + 30px), 1100px);
       --stage-w: calc((var(--stage-h) - 30px) * 0.5625 + 30px);
       --left-w: clamp(340px, calc(var(--stage-w) * 1.1), 520px);
     }
 
-    .main-layout {
-      position: relative; z-index: 1; margin: auto; height: var(--stage-h);
-      display: grid; grid-template-columns: var(--left-w) var(--stage-w);
-      column-gap: var(--gap); align-items: stretch;
-    }
+    .main-layout { position: relative; z-index: 1; margin: auto; height: var(--stage-h); display: grid; grid-template-columns: var(--left-w) var(--stage-w); column-gap: var(--gap); align-items: stretch; }
 
     .desktop-notice { display: none; position: fixed; inset: 0; z-index: 50; align-items: center; justify-content: center; padding: 20px; background: #06080d; overflow-y: auto; }
     .dn-card { max-width: 420px; margin: auto; text-align: center; background: rgba(20, 24, 28, 0.9); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 14px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
@@ -111,10 +79,7 @@
     html.mobile-blocked .desktop-notice { display: flex; }
     @media (hover: none), (pointer: coarse) { .main-layout { display: none !important; } .desktop-notice { display: flex; } }
 
-    .control-panel {
-      height: 100%; min-height: 0; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur));
-      border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
+    .control-panel { height: 100%; min-height: 0; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 
     .panel-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
     .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; flex: 0 0 auto; }
@@ -373,11 +338,9 @@
      PENGATURAN
      ================================================================ */
   const BG_SHEET_CSV_URL = "";
-
   const BASE_W = 450;
   const BASE_H = 800;
   const EXPORT_W = 1080;
-
   const COUNT_MODE = 'unique';
   const SLIDE_COUNT = 5;
 
@@ -415,13 +378,14 @@
     return m ? { y: +m[1], m: +m[2], d: +m[3] } : null;
   }
   function dateShort(m, d) { return `${d} ${MONTHS_SHORT[m - 1]}`; }
-
-  /* ================================================================
-     BACKGROUND DARI GOOGLE SHEET (DIMATIKAN)
-     ================================================================ */
-  async function loadBackgroundFromSheet() {
-    if (!BG_SHEET_CSV_URL) return;
+  
+  // Format tanggal join (contoh: 13 Februari 2022)
+  function formatJoinDate(dateObj) {
+    if (!dateObj) return null;
+    return `${dateObj.d} ${MONTHS[dateObj.m - 1]} ${dateObj.y}`;
   }
+
+  async function loadBackgroundFromSheet() { if (!BG_SHEET_CSV_URL) return; }
 
   /* ================================================================
      MEMBACA ZIP LETTERBOXD
@@ -439,10 +403,8 @@
       if (!date) return;
       const rating = parseFloat(row['Rating']);
       entries.push({
-        key: keyOf(row),
-        title: (row['Name'] || '').trim() || 'Untitled',
-        relYear: parseInt(row['Year']) || 0,
-        rating: isNaN(rating) ? 0 : rating,
+        key: keyOf(row), title: (row['Name'] || '').trim() || 'Untitled',
+        relYear: parseInt(row['Year']) || 0, rating: isNaN(rating) ? 0 : rating,
         rewatch: /^yes$/i.test((row['Rewatch'] || '').trim()),
         y: date.y, m: date.m, d: date.d
       });
@@ -467,12 +429,16 @@
     if (parts.likes) likedKeys = new Set(parts.likes.map(keyOf));
 
     let username = null;
+    let joinDate = null; // Variabel baru untuk tanggal join
+
     if (parts.profile && parts.profile[0]) {
       username = (parts.profile[0]['Username'] || '').trim() || null;
+      const joinStr = parts.profile[0]['Date Joined'];
+      if (joinStr) joinDate = parseYMD(joinStr);
     }
 
     return {
-      entries, watched, ratings, likedKeys, username,
+      entries, watched, ratings, likedKeys, username, joinDate,
       reviewsCount: parts.reviews ? parts.reviews.length : null,
       watchlistCount: parts.watchlist ? parts.watchlist.length : null
     };
@@ -494,45 +460,27 @@
       };
 
       const diary = await readCSV(/(^|\/)diary\.csv$/i);
-      if (!diary) {
-        setStatus('Error: diary.csv tidak ditemukan di dalam ZIP. Pastikan ini file ekspor data Letterboxd.');
-        return;
-      }
+      if (!diary) { setStatus('Error: diary.csv tidak ditemukan.'); return; }
 
       const [watched, ratings, likes, reviews, watchlist, profile] = await Promise.all([
-        readCSV(/(^|\/)watched\.csv$/i),
-        readCSV(/(^|\/)ratings\.csv$/i),
-        readCSV(/(^|\/)likes\/films\.csv$/i),
-        readCSV(/(^|\/)reviews\.csv$/i),
-        readCSV(/(^|\/)watchlist\.csv$/i),
-        readCSV(/(^|\/)profile\.csv$/i)
+        readCSV(/(^|\/)watched\.csv$/i), readCSV(/(^|\/)ratings\.csv$/i),
+        readCSV(/(^|\/)likes\/films\.csv$/i), readCSV(/(^|\/)reviews\.csv$/i),
+        readCSV(/(^|\/)watchlist\.csv$/i), readCSV(/(^|\/)profile\.csv$/i)
       ]);
 
       const ds = buildDataset({ diary, watched, ratings, likes, reviews, watchlist, profile });
-      if (!ds.entries.length) {
-        setStatus('Tidak ada entri diary yang punya tanggal tonton di dalam ZIP ini.');
-        return;
-      }
+      if (!ds.entries.length) { setStatus('Tidak ada entri diary dengan tanggal tonton.'); return; }
 
-      if (ds.username) {
-        $('inUserHandle').value = 'letterboxd.com/' + ds.username;
-        updateHandle();
-      }
-
+      if (ds.username) { $('inUserHandle').value = 'letterboxd.com/' + ds.username; updateHandle(); }
       applyDataset(ds);
+      
       const uniqueDiary = new Set(ds.entries.map(e => e.key)).size;
-      setStatus(
-        `Selesai! ${fmt(ds.entries.length)} entri diary dari ${model.yearList.length} tahun. ` +
-        `Hanya film yang punya tanggal tonton (diary) yang dihitung per tahun: ${fmt(uniqueDiary)} film` +
-        (model.allTime.total > uniqueDiary ? ` dari total ${fmt(model.allTime.total)} film yang ditandai watched.` : '.')
-      );
-    } catch (err) {
-      setStatus('Gagal membaca file ZIP: ' + err.message);
-    }
+      setStatus(`Selesai! ${fmt(ds.entries.length)} entri diary dari ${model.yearList.length} tahun. (${fmt(uniqueDiary)} film unik)`);
+    } catch (err) { setStatus('Gagal: ' + err.message); }
   }
 
   /* ================================================================
-     DATA CONTOH (muncul saat halaman pertama dibuka)
+     DATA CONTOH
      ================================================================ */
   function makeDemoDataset() {
     let seed = 20260101;
@@ -544,9 +492,7 @@
     };
     const plan = { 2022: 64, 2023: 98, 2024: 131, 2025: 172, 2026: 156 };
     const pool = [0.5, 1, 1.5, 2, 2.5, 2.5, 3, 3, 3, 3.5, 3.5, 3.5, 4, 4, 4, 4, 4.5, 4.5, 5];
-    const entries = [];
-    const likedKeys = new Set();
-    let n = 0;
+    const entries = []; const likedKeys = new Set(); let n = 0;
 
     Object.keys(plan).forEach(ys => {
       const y = +ys;
@@ -556,11 +502,9 @@
         const maxDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
         const key = 'demo-' + n;
         entries.push({
-          key,
-          title: 'Film Contoh ' + String(n).padStart(3, '0'),
+          key, title: 'Film Contoh ' + String(n).padStart(3, '0'),
           relYear: 1950 + Math.floor(Math.pow(rnd(), 0.45) * 76),
-          rating: pool[Math.floor(rnd() * pool.length)],
-          rewatch: rnd() < 0.07,
+          rating: pool[Math.floor(rnd() * pool.length)], rewatch: rnd() < 0.07,
           y, m, d: 1 + Math.floor(rnd() * maxDay)
         });
         if (rnd() < 0.3) likedKeys.add(key);
@@ -574,6 +518,7 @@
 
     return {
       entries, watched, ratings, likedKeys, username: null,
+      joinDate: { y: 2022, m: 2, d: 13 }, // Data contoh tanggal join
       reviewsCount: 18, watchlistCount: 142
     };
   }
@@ -587,38 +532,26 @@
     const decs = valid.map(v => Math.floor(v / 10) * 10);
     const min = Math.min(...decs), max = Math.max(...decs);
     const labels = [], values = [];
-    for (let d = min; d <= max; d += 10) {
-      labels.push(d + 's');
-      values.push(decs.filter(x => x === d).length);
-    }
+    for (let d = min; d <= max; d += 10) { labels.push(d + 's'); values.push(decs.filter(x => x === d).length); }
     return { labels, values };
   }
 
   function computeYear(y, E) {
-    const monthly = Array(12).fill(0);
-    const weekday = Array(7).fill(0);
-    const dayCounts = {};
-    const ratingDist = Array(10).fill(0);
-    const uniq = {};
+    const monthly = Array(12).fill(0); const weekday = Array(7).fill(0);
+    const dayCounts = {}; const ratingDist = Array(10).fill(0); const uniq = {};
     let sum = 0, rated = 0, rewatches = 0;
 
     E.forEach(e => {
-      monthly[e.m - 1]++;
-      weekday[weekdayIndex(e.y, e.m, e.d)]++;
-      const dk = e.m + '-' + e.d;
-      dayCounts[dk] = (dayCounts[dk] || 0) + 1;
+      monthly[e.m - 1]++; weekday[weekdayIndex(e.y, e.m, e.d)]++;
+      const dk = e.m + '-' + e.d; dayCounts[dk] = (dayCounts[dk] || 0) + 1;
       if (e.rewatch) rewatches++;
       if (e.rating > 0) {
         const idx = Math.round(e.rating * 2) - 1;
         if (idx >= 0 && idx < 10) ratingDist[idx]++;
-        sum += e.rating;
-        rated++;
+        sum += e.rating; rated++;
       }
-
       let u = uniq[e.key];
-      if (!u) {
-        u = uniq[e.key] = { key: e.key, title: e.title, relYear: e.relYear, rating: 0 };
-      }
+      if (!u) u = uniq[e.key] = { key: e.key, title: e.title, relYear: e.relYear, rating: 0 };
       if (e.rating > u.rating) u.rating = e.rating;
     });
 
@@ -649,11 +582,7 @@
     let streak = { days: 0 };
     if (best) {
       const s = new Date(bestStart * 86400000), t = new Date((bestStart + best - 1) * 86400000);
-      streak = {
-        days: best,
-        from: { m: s.getUTCMonth() + 1, d: s.getUTCDate() },
-        to: { m: t.getUTCMonth() + 1, d: t.getUTCDate() }
-      };
+      streak = { days: best, from: { m: s.getUTCMonth() + 1, d: s.getUTCDate() }, to: { m: t.getUTCMonth() + 1, d: t.getUTCDate() } };
     }
 
     const relYears = films.map(f => f.relYear).filter(v => v > 0);
@@ -690,13 +619,11 @@
     });
 
     return {
-      total: watchedList.length,
-      decades, dist,
+      total: watchedList.length, decades, dist,
       avg: ratingsArr.length ? sum / ratingsArr.length : 0,
-      ratedCount: ratingsArr.length,
-      reviews: ds.reviewsCount,
-      likes: ds.likedKeys ? ds.likedKeys.size : null,
-      watchlist: ds.watchlistCount
+      ratedCount: ratingsArr.length, reviews: ds.reviewsCount,
+      likes: ds.likedKeys ? ds.likedKeys.size : null, watchlist: ds.watchlistCount,
+      joinDate: ds.joinDate // Simpan tanggal join di model
     };
   }
 
@@ -715,11 +642,9 @@
   function headerHTML(kicker, title) {
     return `<div class="card-header"><div class="kicker">${esc(kicker)}</div><div class="card-title">${esc(title)}</div><div class="header-accent"></div></div>`;
   }
-
   function metricHTML(val, lbl, sub) {
     return `<div class="box metric"><div class="metric-val">${val}</div><div class="metric-lbl">${lbl}</div>${sub ? `<div class="metric-sub">${sub}</div>` : ''}</div>`;
   }
-
   function barChartHTML(values, labels, o) {
     o = o || {};
     const H = o.height || 100;
@@ -736,7 +661,6 @@
     });
     return `<div class="bars" style="height:${H}px">${cols}</div><div class="bar-labels">${labs}</div>`;
   }
-
   function heatmapHTML(year, dayCounts) {
     let html = '<div class="heatmap">';
     for (let m = 1; m <= 12; m++) {
@@ -858,11 +782,18 @@
       : '<div class="empty-note">Data tahun rilis tidak tersedia</div>';
     const n = v => (v === null || v === undefined) ? '-' : fmt(v);
 
+    // Ambil data tanggal join dan ubah formatnya
+    const joinDateStr = formatJoinDate(a.joinDate);
+    const joinSubHTML = joinDateStr 
+      ? `<div class="hero-sub" style="margin-top: 8px; font-size: 12px; color: #00e054; font-weight: 700;"><i class="fa-solid fa-calendar-check"></i> Bergabung sejak ${joinDateStr}</div>` 
+      : '';
+
     $('slide4').innerHTML = headerHTML('Seluruh Riwayat', 'Sepanjang Waktu') + `
       <div class="slide-body">
         <div class="hero">
           <div class="hero-num accent" style="font-size:78px;">${fmt(a.total)}</div>
           <div class="hero-label">film ditonton sepanjang waktu</div>
+          ${joinSubHTML}
         </div>
         <div class="metric-grid">
           ${metricHTML(a.avg > 0 ? ratingText(a.avg) : '-', 'Rata-rata Rating', a.ratedCount ? `${fmt(a.ratedCount)} film dirating` : '')}
@@ -882,74 +813,96 @@
   }
 
   /* ================================================================
-     SLIDE 5 - PERBANDINGAN (4 tahun terkini, mengikuti tahun saat ini)
+     SLIDE 5 - PERBANDINGAN DINAMIS (Berdasarkan Tahun Terpilih)
      ================================================================ */
-  function recentYears() {
-    const cy = new Date().getFullYear();
-    return [cy - 3, cy - 2, cy - 1, cy]; // urut dari terlama ke terbaru
-  }
-
-  function filmsOf(y) { return model.years[y] ? model.years[y].films : 0; }
-
-  function deltaBadge(y) {
-    const cur = model.years[y], prev = model.years[y - 1];
-    if (!cur) return '<span class="gap-badge gap-neutral">Belum ada data</span>';
-    if (!prev) return '<span class="gap-badge gap-neutral">Tahun pertama</span>';
-    const diff = cur.films - prev.films;
-    const pct = prev.films > 0 ? (diff / prev.films) * 100 : 0;
-    const sign = diff > 0 ? '+' : '';
-    if (diff > 0) return `<span class="gap-badge gap-plus"><i class="fa-solid fa-arrow-trend-up"></i> ${sign}${diff} (${sign}${pct.toFixed(1)}%)</span>`;
-    if (diff < 0) return `<span class="gap-badge gap-minus"><i class="fa-solid fa-arrow-trend-down"></i> ${diff} (${pct.toFixed(1)}%)</span>`;
-    return '<span class="gap-badge gap-neutral"><i class="fa-solid fa-equals"></i> Sama</span>';
-  }
-
   function renderSlide5() {
-    const wy = recentYears();
-    const newest = wy[3], prev = newest - 1;
-    const hasNew = !!model.years[newest], hasPrev = !!model.years[prev];
+    const targetYear = selectedYear;
+    // Ambil 1 tahun sebelumnya dan 1 tahun sesudahnya (jika ada datanya)
+    const prevYear = model.years[targetYear - 1] ? targetYear - 1 : null;
+    const nextYear = model.years[targetYear + 1] ? targetYear + 1 : null;
 
-    let heroNum, heroCls, heroLbl, heroSub;
-    if (hasNew && hasPrev) {
-      const diff = filmsOf(newest) - filmsOf(prev);
-      const pct = filmsOf(prev) > 0 ? (diff / filmsOf(prev)) * 100 : 0;
-      const sign = diff > 0 ? '+' : '';
-      heroNum = `${sign}${fmt(diff)}`;
-      heroCls = diff > 0 ? 'up' : (diff < 0 ? 'down' : 'flat');
-      heroLbl = `film dibanding ${prev}`;
-      heroSub = `${fmt(filmsOf(newest))} film di ${newest} • ${sign}${pct.toFixed(1)}%`;
-    } else if (hasNew) {
-      heroNum = fmt(filmsOf(newest));
-      heroCls = 'accent';
-      heroLbl = `film di ${newest}`;
-      heroSub = 'Belum ada data tahun sebelumnya';
+    const yData = model.years[targetYear];
+    const yFilms = yData ? yData.films : 0;
+    const pFilms = prevYear ? model.years[prevYear].films : 0;
+    const nFilms = nextYear ? model.years[nextYear].films : 0;
+
+    // Tentukan "Hero" (Angka Besar di tengah)
+    let heroNum = fmt(yFilms);
+    let heroCls = 'accent';
+    let heroLbl = `film di tahun ${targetYear}`;
+    let heroSub = '';
+
+    if (prevYear && nextYear) {
+      // Bandingkan dengan tahun sebelumnya
+      const diffPrev = yFilms - pFilms;
+      const pctPrev = pFilms > 0 ? (diffPrev / pFilms) * 100 : 0;
+      const sign = diffPrev > 0 ? '+' : '';
+      
+      if (diffPrev === 0) { heroCls = 'flat'; heroSub = 'Sama dengan tahun sebelumnya'; }
+      else { heroCls = diffPrev > 0 ? 'up' : 'down'; heroSub = `${sign}${fmt(diffPrev)} (${sign}${pctPrev.toFixed(1)}%) vs ${prevYear}`; }
+    } else if (prevYear) {
+      // Hanya ada tahun sebelumnya (Ini adalah tahun terakhir yang di-log)
+      const diffPrev = yFilms - pFilms;
+      const pctPrev = pFilms > 0 ? (diffPrev / pFilms) * 100 : 0;
+      const sign = diffPrev > 0 ? '+' : '';
+      
+      if (diffPrev === 0) { heroCls = 'flat'; heroSub = 'Sama dengan tahun sebelumnya'; }
+      else { heroCls = diffPrev > 0 ? 'up' : 'down'; heroSub = `${sign}${fmt(diffPrev)} (${sign}${pctPrev.toFixed(1)}%) vs ${prevYear}`; }
+    } else if (nextYear) {
+      // Hanya ada tahun sesudahnya (Ini adalah tahun paling awal yang di-log)
+      heroCls = 'up'; // Warna netral/awal
+      heroSub = `Tahun pertama log. (${fmt(nFilms)} film di ${nextYear})`;
     } else {
-      heroNum = '0';
-      heroCls = 'flat';
-      heroLbl = `film di ${newest}`;
-      heroSub = 'Belum ada data tahun ini';
+      // Hanya 1 tahun log
+      heroCls = 'flat'; heroSub = 'Belum ada pembanding';
     }
 
-    const values = wy.map(filmsOf);
+    // Bar Chart
+    const chartData = [];
+    const chartLabels = [];
+    const chartHighlight = [];
+    if (prevYear) { chartData.push(pFilms); chartLabels.push(prevYear); chartHighlight.push(-1); }
+    chartData.push(yFilms); chartLabels.push(targetYear); chartHighlight.push(chartData.length - 1); // Highlight target
+    if (nextYear) { chartData.push(nFilms); chartLabels.push(nextYear); chartHighlight.push(-1); }
 
-    const rows = [...wy].reverse().map(v => {
-      const d = model.years[v];
-      return `<div class="year-row${v === newest ? ' current' : ''}">
-        <div class="yr-year">${v}</div>
-        <div class="yr-films">${fmt(filmsOf(v))} film</div>
-        <div>${deltaBadge(v)}</div>
-        <div class="yr-avg">${d && d.avg > 0 ? '★ ' + Number(d.avg.toFixed(2)) : '-'}</div>
+    const chartHTML = barChartHTML(chartData, chartLabels, { height: 120, highlight: chartHighlight.indexOf(0) > -1 ? chartHighlight.indexOf(0) : 1, hlClass: 'hl', showValues: true, maxBar: 70 });
+
+    // Rows (Daftar perbandingan)
+    let rows = [];
+    if (prevYear) rows.push({ year: prevYear, films: pFilms, isCurrent: false, diff: pFilms - (model.years[prevYear - 1] ? model.years[prevYear - 1].films : 0), hasPrev: !!model.years[prevYear - 1] });
+    rows.push({ year: targetYear, films: yFilms, isCurrent: true, diff: yFilms - (prevYear ? pFilms : 0), hasPrev: !!prevYear });
+    if (nextYear) rows.push({ year: nextYear, films: nFilms, isCurrent: false, diff: nFilms - yFilms, hasPrev: true });
+
+    const rowsHTML = rows.map(r => {
+      let badge = '<span class="gap-badge gap-neutral">-</span>';
+      if (r.hasPrev) {
+        const sign = r.diff > 0 ? '+' : '';
+        if (r.diff > 0) badge = `<span class="gap-badge gap-plus"><i class="fa-solid fa-arrow-trend-up"></i> ${sign}${r.diff}</span>`;
+        else if (r.diff < 0) badge = `<span class="gap-badge gap-minus"><i class="fa-solid fa-arrow-trend-down"></i> ${r.diff}</span>`;
+        else badge = '<span class="gap-badge gap-neutral"><i class="fa-solid fa-equals"></i> Sama</span>';
+      } else {
+        badge = '<span class="gap-badge gap-neutral">Tahun pertama</span>';
+      }
+      
+      const avg = model.years[r.year] ? model.years[r.year].avg : 0;
+      return `<div class="year-row${r.isCurrent ? ' current' : ''}">
+        <div class="yr-year">${r.year}</div>
+        <div class="yr-films">${fmt(r.films)} film</div>
+        <div>${badge}</div>
+        <div class="yr-avg">${avg > 0 ? '★ ' + Number(avg.toFixed(2)) : '-'}</div>
       </div>`;
     }).join('');
 
+    // Cari pemenang
     let bestFilms = null;
-    wy.forEach(v => { if (filmsOf(v) > 0 && (bestFilms === null || filmsOf(v) > filmsOf(bestFilms))) bestFilms = v; });
+    rows.forEach(r => { if (r.films > 0 && (bestFilms === null || r.films > bestFilms.films)) bestFilms = r; });
     let bestRated = null;
-    wy.forEach(v => {
-      const d = model.years[v];
-      if (d && d.rated >= 10 && (bestRated === null || d.avg > model.years[bestRated].avg)) bestRated = v;
+    rows.forEach(r => {
+      const d = model.years[r.year];
+      if (d && d.rated >= 10 && (bestRated === null || d.avg > model.years[bestRated.year].avg)) bestRated = r;
     });
 
-    $('slide5').innerHTML = headerHTML('Empat Tahun Terakhir', 'Perbandingan') + `
+    $('slide5').innerHTML = headerHTML('Sekitar Tahun Terpilih', 'Perbandingan') + `
       <div class="slide-body">
         <div class="hero">
           <div class="hero-num ${heroCls}" style="font-size:68px;">${heroNum}</div>
@@ -958,12 +911,12 @@
         </div>
         <div class="box">
           <div class="box-title"><i class="fa-solid fa-chart-column"></i> Film per Tahun</div>
-          ${barChartHTML(values, wy, { height: 150, highlight: 3, hlClass: 'hl', showValues: true, maxBar: 70 })}
+          ${chartHTML}
         </div>
-        <div class="year-rows">${rows}</div>
+        <div class="year-rows">${rowsHTML}</div>
         <div class="metric-row two">
-          ${metricHTML(bestFilms !== null ? bestFilms : '-', 'Tahun Terbanyak', bestFilms !== null ? `${fmt(filmsOf(bestFilms))} film` : '')}
-          ${metricHTML(bestRated !== null ? bestRated : '-', 'Rating Tertinggi', bestRated !== null ? `rata-rata ${Number(model.years[bestRated].avg.toFixed(2))}` : '')}
+          ${metricHTML(bestFilms !== null ? bestFilms.year : '-', 'Tahun Terbanyak', bestFilms !== null ? `${fmt(bestFilms.films)} film` : '')}
+          ${metricHTML(bestRated !== null ? bestRated.year : '-', 'Rating Tertinggi', bestRated !== null ? `rata-rata ${Number(model.years[bestRated.year].avg.toFixed(2))}` : '')}
         </div>
       </div>`;
   }
@@ -989,11 +942,7 @@
   }
 
   function renderAll() {
-    renderSlide1();
-    renderSlide2();
-    renderSlide3();
-    renderSlide4();
-    renderSlide5();
+    renderSlide1(); renderSlide2(); renderSlide3(); renderSlide4(); renderSlide5();
   }
 
   function applyDataset(ds) {
@@ -1017,7 +966,6 @@
     }
   }
 
-  // Perbesar/perkecil kartu agar pas dengan panel pratinjau
   function fitPreview() {
     const inner = $('stageInner');
     const w = inner.clientWidth, h = inner.clientHeight;
@@ -1030,33 +978,23 @@
      ================================================================ */
   async function renderCardToCanvas(n) {
     const clone = $('exportCard').cloneNode(true);
-
     clone.querySelectorAll('.slide').forEach(s => {
       if (s.id !== 'slide' + n) s.remove(); else s.classList.add('active');
     });
     clone.removeAttribute('id');
     clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-    clone.style.cssText =
-      `display:flex; position:relative; top:0; left:0; width:${BASE_W}px; height:${BASE_H}px;` +
-      'transform:none; border-radius:0; box-shadow:none; background-color:#14181c;';
+    clone.style.cssText = `display:flex; position:relative; top:0; left:0; width:${BASE_W}px; height:${BASE_H}px; transform:none; border-radius:0; box-shadow:none; background-color:#14181c;`;
 
     const stage = document.createElement('div');
-    stage.style.cssText =
-      `position:fixed; left:-10000px; top:0; width:${BASE_W}px; height:${BASE_H}px; overflow:hidden; pointer-events:none;`;
+    stage.style.cssText = `position:fixed; left:-10000px; top:0; width:${BASE_W}px; height:${BASE_H}px; overflow:hidden; pointer-events:none;`;
     stage.appendChild(clone);
     document.body.appendChild(stage);
 
     try {
       return await html2canvas(clone, {
-        scale: EXPORT_W / BASE_W,
-        width: BASE_W,
-        height: BASE_H,
-        scrollX: 0,
-        scrollY: 0,
-        useCORS: false,
-        allowTaint: true,
-        backgroundColor: '#14181c',
-        logging: false
+        scale: EXPORT_W / BASE_W, width: BASE_W, height: BASE_H,
+        scrollX: 0, scrollY: 0, useCORS: false, allowTaint: true,
+        backgroundColor: '#14181c', logging: false
       });
     } finally {
       document.body.removeChild(stage);
@@ -1074,16 +1012,13 @@
     try {
       const canvas = await renderCardToCanvas(activeSlide);
       downloadCanvas(canvas, `Wrapped-${selectedYear}-Slide-${activeSlide}.png`);
-    } catch (err) {
-      alert("Gagal melakukan export gambar: " + err.message);
-    }
+    } catch (err) { alert("Gagal melakukan export gambar: " + err.message); }
   }
 
   async function exportAllSlides() {
     const btn = $('btnExportAll');
     const originalText = btn.innerHTML;
     btn.disabled = true;
-
     try {
       for (let s = 1; s <= SLIDE_COUNT; s++) {
         btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mendownload Slide ${s}/${SLIDE_COUNT}...`;
@@ -1091,12 +1026,8 @@
         downloadCanvas(canvas, `Wrapped-${selectedYear}-Slide-${s}.png`);
         await sleep(600);
       }
-    } catch (err) {
-      alert("Gagal melakukan export gambar: " + err.message);
-    } finally {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-    }
+    } catch (err) { alert("Gagal melakukan export gambar: " + err.message); } 
+    finally { btn.innerHTML = originalText; btn.disabled = false; }
   }
 
   /* ================================================================
@@ -1104,18 +1035,14 @@
      ================================================================ */
   window.onload = () => {
     if (applyDeviceGate()) return;
-
     updateHandle();
     fitPreview();
     applyDataset(makeDemoDataset());
     switchSlide(1);
     setStatus('Menampilkan DATA CONTOH. Upload ZIP ekspor Letterboxd Anda untuk memakai data sendiri.');
     loadBackgroundFromSheet();
-
     window.addEventListener('resize', fitPreview);
-    if (window.ResizeObserver) {
-      new ResizeObserver(fitPreview).observe($('stageInner'));
-    }
+    if (window.ResizeObserver) { new ResizeObserver(fitPreview).observe($('stageInner')); }
   };
 </script>
 
