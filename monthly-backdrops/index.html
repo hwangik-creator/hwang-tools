@@ -6,6 +6,7 @@
   <title>Monthly Backdrops</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2306080d'/%3E%3Ctext x='50' y='72' font-size='60' fill='%2300e054' text-anchor='middle' font-family='Arial, sans-serif'%3E%F0%9F%96%BC%EF%B8%8F%3C/text%3E%3C/svg%3E">
   
+  <!-- Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -15,7 +16,7 @@
   <style>
     /* DASAR HITAM & TRANSISI */
     html, body { width: 100%; background-color: #06080d !important; color: #ffffff; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { min-height: 100vh; padding: 12px; display: flex; position: relative; animation: fadeInPage 0.5s ease forwards; }
+    body { min-height: 100vh; padding: 12px; display: flex; position: relative; animation: fadeInPage 0.5s ease forwards; overflow: hidden; /* Cegah scroll body */}
     @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
     body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
 
@@ -26,91 +27,99 @@
     .btn-back-home { position: fixed; top: 20px; left: 20px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff; text-decoration: none; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
 
-    /* LAYOUT UTAMA */
+    /* LAYOUT DUA PANEL */
     :root {
       --accent: #00e054;
+      --accent2: #ff8000;
       --panel-bg: rgba(20, 24, 28, 0.72);
       --panel-blur: 12px;
-      --stage-h: min(calc(100vh - 24px), calc((100vw - 392px - 30px) * 1.7778 + 30px), 1100px);
+      --gap: 28px;
+      --stage-h: min(calc(100vh - 24px), calc((100vw - 442px - 30px) * 1.7778 + 30px), 1100px);
       --stage-w: calc((var(--stage-h) - 30px) * 0.5625 + 30px);
-      --left-w: clamp(340px, calc(var(--stage-w) * 1.1), 520px);
+      --left-w: clamp(380px, calc(var(--stage-w) * 1.2), 550px);
     }
 
-    .main-layout { position: relative; z-index: 1; margin: auto; height: var(--stage-h); display: grid; grid-template-columns: var(--left-w) var(--stage-w); column-gap: 28px; align-items: stretch; }
+    .main-layout { position: relative; z-index: 1; margin: auto; height: var(--stage-h); display: grid; grid-template-columns: var(--left-w) var(--stage-w); column-gap: var(--gap); align-items: stretch; }
 
     /* PANEL KIRI */
-    .control-panel { height: 100%; min-height: 0; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .panel-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    
-    .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; flex: 0 0 auto; }
-    .form-group label { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    input[type="text"], select, textarea { background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 8px; border-radius: 6px; font-size: 11.5px; outline: none; width: 100%; }
-    textarea { font-family: monospace; font-size: 10.5px; line-height: 1.5; resize: vertical; min-height: 100px; }
-    input[type="file"] { color: #8a9bb0; background: #0f1115; border: 1px solid #2c3440; padding: 4px; border-radius: 6px; font-size: 11px; cursor: pointer; width: 100%; }
-    input[type="file"]::file-selector-button { background: #222a33; color: #ffffff; border: 1px solid #3a4654; padding: 6px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; margin-right: 8px; }
-    
-    .hint { font-size: 10.5px; line-height: 1.45; color: #9ab1c2; background: rgba(15, 17, 21, 0.7); border: 1px solid rgba(44, 52, 64, 0.8); border-radius: 8px; padding: 7px 9px; }
-    .status-box { font-size: 11px; color: #F4D160; background: rgba(15, 17, 21, 0.7); border: 1px solid rgba(44, 52, 64, 0.8); padding: 8px 10px; border-radius: 8px; margin-bottom: 12px; line-height: 1.45; flex: 0 0 auto; }
-
-    .btn { padding: 8px 10px; border: none; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-    .btn:disabled { opacity: 0.6; cursor: wait; }
-    .btn-export { background: #ff8000; color: #ffffff; width: 100%; padding: 10px; margin-top: 10px; }
-    .btn-export:hover { background: #e07000; }
-
-    /* PANEL KANAN (KACA TRANSPARAN) */
-    .stage-panel { 
-      position: relative; height: 100%; 
-      background: var(--panel-bg); 
-      -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); 
-      border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; 
+    .control-panel { 
+      height: 100%; min-height: 0; 
+      background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); 
+      border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; 
+      display: flex; flex-direction: column; gap: 10px; overflow: hidden; /* Scroll diatur per elemen */
       box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
-      display: flex; flex-direction: column;
     }
+
+    .panel-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
     
+    .form-group { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+    .form-group label { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .form-grid .full { grid-column: span 2; }
+
+    input[type="text"], select, textarea { background: #0f1115; border: 1px solid #2c3440; color: #fff; padding: 7px; border-radius: 6px; font-size: 11px; outline: none; width: 100%; }
+    input[type="text"]:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    
+    input[type="file"] { color: #8a9bb0; background: #0f1115; border: 1px solid #2c3440; padding: 4px; border-radius: 6px; font-size: 11px; cursor: pointer; width: 100%; flex: 0 0 auto; }
+    input[type="file"]::file-selector-button { background: #222a33; color: #ffffff; border: 1px solid #3a4654; padding: 5px 10px; border-radius: 4px; font-weight: 600; cursor: pointer; margin-right: 6px; }
+    
+    textarea { font-family: monospace; font-size: 10.5px; line-height: 1.4; resize: none; height: 60px; flex: 0 0 auto; }
+
+    .btn { padding: 8px 10px; border: none; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 0 auto; }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .btn-parse { background: var(--accent); color: #14181c; flex: 1; }
+    .btn-parse:hover { background: #00b342; }
+    .btn-clear { background: #2c3440; color: #ffffff; }
+    .btn-export { background: var(--accent2); color: #ffffff; flex: 1; }
+    .btn-export:hover { background: #e07000; }
+    .btn-all { background: #3b82f6; color: #ffffff; width: 100%; margin-top: 4px; }
+
+    .pagination-bar { display: flex; align-items: center; justify-content: space-between; background: #0f1115; border: 1px solid #2c3440; border-radius: 6px; padding: 4px 8px; flex: 0 0 auto; }
+    .pagination-bar button { background: #2c3440; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: 700; }
+    .pagination-bar button:hover { background: var(--accent); color: #14181c; }
+
+    /* DAFTAR EDIT FILM (SCROLLABLE) */
+    .csv-movie-list { margin-top: 2px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 4px; flex: 1 1 auto; min-height: 100px; }
+    .csv-movie-list::-webkit-scrollbar { width: 6px; }
+    .csv-movie-list::-webkit-scrollbar-thumb { background: #2c3440; border-radius: 3px; }
+
+    .csv-movie-card { background: #0f1115; border: 1px solid #2c3440; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .movie-title { font-weight: 700; font-size: 10.5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .movie-title span { color: #8a9bb0; font-weight: 500; font-size: 9.5px; }
+    .poster-inputs input[type="text"] { font-size: 9.5px; padding: 4px; }
+
+    /* PANEL KANAN */
+    .stage-panel { position: relative; height: 100%; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .stage-inner { position: absolute; inset: 14px; overflow: hidden; display: flex; justify-content: center; align-items: center; }
     
-    /* KANVAS 9:16 */
     .card-holder { position: relative; width: 450px; height: 800px; transform: scale(var(--s, 1)); transform-origin: center center; }
-    .recap-card { 
-      width: 450px; height: 800px; 
-      background-color: #14181c; /* Solid pas di-export, tapi transparan di layar */
-      padding: 24px 20px 18px 20px; 
-      border-radius: 12px; display: flex; flex-direction: column; position: relative; overflow: hidden; 
-    }
-    
+    .recap-card { width: 450px; height: 800px; background-color: transparent; padding: 24px 20px 18px 20px; border-radius: 12px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+    /* HEADER KANVAS */
     .card-header { text-align: center; margin-bottom: 14px; flex: 0 0 auto; }
-    .card-title { font-size: 24px; font-weight: 800; line-height: 1.1; color: #ffffff; }
-    .card-subtitle { font-size: 12px; color: var(--accent); font-weight: 700; margin-top: 4px; }
+    .month-title { font-size: 23px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; line-height: 1.1; }
+    .header-sub-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px; }
+    .stats-subtitle { font-size: 11px; color: var(--accent); font-weight: 700; }
+    .page-badge { font-size: 10px; color: #ffffff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-weight: 700; }
 
-    /* GRID BACKDROP */
-    .backdrop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1 1 auto; align-content: start; }
+    /* GRID BACKDROP (2 KOLOM x 5 BARIS) */
+    .backdrop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; align-content: start; flex-grow: 1; margin-top: 6px; margin-bottom: auto; width: 100%; }
     
-    .backdrop-item { 
-      position: relative; width: 100%; 
-      border-radius: 8px; overflow: hidden; 
-      background: #1e262c; 
-      border: 1px solid rgba(255,255,255,0.1); 
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
-      display: flex; flex-direction: column;
-    }
+    .backdrop-item { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; background-color: #1e262c; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: flex-end; }
+    .backdrop-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     
-    /* Gambar dibiarkan mengikuti proporsi asli (biasanya 16:9) */
-    .backdrop-item img { width: 100%; height: auto; display: block; min-height: 90px; object-fit: cover; }
-    
-    .bd-text-wrapper { padding: 6px 8px; background: #14181c; }
-    .bd-title { font-size: 10.5px; font-weight: 700; line-height: 1.25; color: #fff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .bd-year { font-size: 9.5px; font-weight: 600; color: #8a9bb0; margin-top: 3px; display: block; }
+    .gradient-overlay { position: relative; z-index: 2; width: 100%; padding: 16px 6px 4px 6px; background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%); display: flex; flex-direction: column; justify-content: flex-end; }
+    .movie-title-text { font-size: 9.5px; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+    .movie-year-text { font-size: 8px; color: #b0c0d0; font-weight: 500; margin-top: 1px; }
 
-    .user-profile-card { flex: 0 0 auto; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; margin-top: 12px; display: flex; align-items: center; justify-content: center; }
+    /* FOOTER KANVAS */
+    .user-profile-card { flex: 0 0 auto; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; }
     .lbxd-brand { display: flex; align-items: center; gap: 6px; }
-    .lbxd-dots { font-size: 11px; letter-spacing: -2px; line-height: 1; }
-    .brand-name { font-size: 11px; font-weight: 800; color: #ffffff; }
-
-    /* NAVIGASI SLIDE */
-    .slide-nav { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px 0; position: relative; z-index: 10; }
-    .slide-nav button { background: #2c3440; border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-    .slide-nav button:hover { background: var(--accent); color: #14181c; }
-    .slide-nav span { font-size: 11px; font-weight: 700; color: #8a9bb0; }
+    .lbxd-dots { font-size: 10.5px; letter-spacing: -2px; line-height: 1; }
+    .brand-name { font-size: 10.5px; font-weight: 800; color: #ffffff; }
+    .user-handle-info { display: flex; flex-direction: column; align-items: flex-end; }
+    .user-handle-info .handle-text { font-size: 10px; font-weight: 700; color: #ffffff; }
+    .user-handle-info .sub-cta { font-size: 7.5px; color: #8a9bb0; text-transform: uppercase; letter-spacing: 0.8px; }
 
     @media (max-width: 900px) {
       .main-layout { width: 100%; height: auto; grid-template-columns: 1fr; row-gap: 15px; }
@@ -127,83 +136,104 @@
 <div id="bgLayer"></div>
 
 <div class="main-layout">
-  <!-- Panel Kiri -->
+  
+  <!-- PANEL KIRI -->
   <div class="control-panel">
     <div class="panel-title"><i class="fa-solid fa-images"></i> Monthly Backdrops</div>
 
     <div class="form-group">
       <label>1. Upload ZIP Letterboxd</label>
       <input type="file" id="zipFileInput" accept=".zip" onchange="processZipFile()">
-      <div class="hint">Untuk mengambil daftar film & tahun rilis berdasarkan tanggal tonton.</div>
     </div>
-
-    <div class="status-box" id="statusMessage">Status: Menunggu ZIP...</div>
-
-    <div class="form-group" style="flex-direction: row; gap: 8px;">
-      <div style="flex: 1;">
+    
+    <div class="form-grid">
+      <div class="form-group">
         <label>Bulan</label>
-        <select id="selectMonth" onchange="renderApp()">
-          <option value="0">Januari</option>
-          <option value="1">Februari</option>
-          <option value="2">Maret</option>
-          <option value="3">April</option>
-          <option value="4">Mei</option>
-          <option value="5">Juni</option>
-          <option value="6">Juli</option>
-          <option value="7">Agustus</option>
-          <option value="8" selected>September</option>
-          <option value="9">Oktober</option>
-          <option value="10">November</option>
-          <option value="11">Desember</option>
+        <select id="selectMonth" onchange="applySorting()">
+          <option value="01">Januari</option>
+          <option value="02">Februari</option>
+          <option value="03">Maret</option>
+          <option value="04">April</option>
+          <option value="05">Mei</option>
+          <option value="06">Juni</option>
+          <option value="07">Juli</option>
+          <option value="08">Agustus</option>
+          <option value="09" selected>September</option>
+          <option value="10">Oktober</option>
+          <option value="11">November</option>
+          <option value="12">Desember</option>
         </select>
       </div>
-      <div style="flex: 1;">
+      <div class="form-group">
         <label>Tahun</label>
-        <input type="text" id="inputYear" value="2026" oninput="renderApp()">
+        <input type="text" id="selectYear" value="2026" oninput="applySorting()">
+      </div>
+      
+      <div class="form-group full">
+        <label>Urutan Tanggal</label>
+        <select id="sortOrder" onchange="applySorting()">
+          <option value="asc">Terlama ke Terbaru (Awal → Akhir)</option>
+          <option value="desc">Terbaru ke Terlama (Akhir → Awal)</option>
+        </select>
       </div>
     </div>
 
     <div class="form-group">
       <label>2. Paste Massal Link Backdrop (16:9)</label>
-      <textarea id="inputBackdrops" placeholder="https://image.tmdb.org/t/p/original/backdrop1.jpg&#10;https://image.tmdb.org/t/p/original/backdrop2.jpg" oninput="renderApp()"></textarea>
-      <div class="hint">Urutan baris sesuai urutan film yang ditonton. (1 baris = 1 backdrop).</div>
+      <textarea id="bulkUrls" placeholder="https://image.tmdb.org/t/p/w780/...&#10;https://image.tmdb.org/t/p/w780/..."></textarea>
+      <button class="btn btn-parse" style="margin-top:4px;" id="btnBulk" onclick="applyBulkUrls()"><i class="fa-solid fa-wand-magic-sparkles"></i> Terapkan Semua Backdrop</button>
     </div>
 
-    <button class="btn btn-export" onclick="exportCurrentSlide()"><i class="fa-solid fa-download"></i> Download Slide Ini (PNG)</button>
+    <div class="btn-group" style="display:flex; gap:8px;">
+      <button class="btn btn-clear" onclick="clearAll()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+    </div>
+
+    <div class="pagination-bar">
+      <button onclick="prevPage()"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+      <span id="pageIndicatorText" style="font-size: 10px; font-weight: 700; color: var(--accent);">Slide 1 dari 1</span>
+      <button onclick="nextPage()">Next <i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+
+    <div class="btn-group" style="flex-direction: column; gap: 6px;">
+      <button class="btn btn-export" onclick="exportCurrentPNG()"><i class="fa-solid fa-download"></i> Export Slide Ini</button>
+      <button class="btn btn-all" id="btnExportAll" onclick="exportAllPagesPNG()"><i class="fa-solid fa-layer-group"></i> Export Semua Slide</button>
+    </div>
+
+    <!-- DAFTAR EDIT -->
+    <div class="csv-movie-list" id="csvMovieList"></div>
   </div>
 
-  <!-- Panel Kanan -->
+  <!-- PANEL KANAN (KANVAS) -->
   <div class="stage-panel">
     <div class="stage-inner" id="stageInner">
       <div class="card-holder" id="cardHolder">
         
-        <!-- Desain Kartu -->
         <div class="recap-card" id="exportCard">
           <div class="card-header">
-            <div class="card-title" id="outMonthYear">September 2026</div>
-            <div class="card-subtitle" id="outTotalFilms">12 films watched</div>
+            <div class="month-title" id="displayMonth">September 2026</div>
+            <div class="header-sub-row">
+              <span class="stats-subtitle" id="displayStats">0 films</span>
+              <span class="page-badge" id="cardPageIndicator">1/1</span>
+            </div>
           </div>
 
-          <div class="backdrop-grid" id="backdropGrid">
-            <!-- Grid Backdrop dirender via JS -->
-          </div>
+          <div class="backdrop-grid" id="backdropGrid"></div>
 
           <div class="user-profile-card">
             <div class="lbxd-brand">
-              <div class="lbxd-dots"><span style="color:#00e054;">●</span><span style="color:#ff8000;">●</span><span style="color:#40bcf4;">●</span></div>
+              <div class="lbxd-dots">
+                <span style="color:#00e054;">●</span><span style="color:#ff8000;">●</span><span style="color:#40bcf4;">●</span>
+              </div>
               <span class="brand-name">Letterboxd</span>
+            </div>
+            <div class="user-handle-info">
+              <span class="handle-text js-handle">letterboxd.com/hwangik</span>
+              <span class="sub-cta">Follow on Letterboxd</span>
             </div>
           </div>
         </div>
 
       </div>
-    </div>
-    
-    <!-- Navigasi Slide (Disembunyikan default, muncul kalau > 1 slide) -->
-    <div class="slide-nav" id="slideNav" style="display: none;">
-      <button onclick="prevSlide()"><i class="fa-solid fa-chevron-left"></i></button>
-      <span id="slideCounter">1/2</span>
-      <button onclick="nextSlide()"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
   </div>
 </div>
@@ -215,17 +245,47 @@
     setTimeout(() => { window.location.href = '../'; }, 400);
   }
 
-  const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  const MAX_PER_SLIDE = 10; // 2 kolom x 5 baris
+  const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  let movies = [];
+  let currentPage = 0;
+  const pageSize = 10;
 
-  let diaryEntries = []; 
-  let currentSlide = 0;
+  // Ambil Base64 untuk Gambar (Hindari CORS)
+  async function fetchImageAsBase64(url) {
+    const cleanUrl = url.trim().replace(/^"|"$/g, '');
+    const proxyList = [
+      u => `https://images.weserv.nl/?url=${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+    ];
 
+    for (let getProxy of proxyList) {
+      try {
+        const res = await fetch(getProxy(cleanUrl));
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        if (blob.size > 0) {
+          return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+      } catch (err) {
+        console.warn("Proxy attempt failed:", err);
+      }
+    }
+    return cleanUrl;
+  }
+
+  // FUNGSI IMPORT ZIP
   async function processZipFile() {
     const file = document.getElementById('zipFileInput').files[0];
     if (!file) return;
-    const status = document.getElementById('statusMessage');
-    status.innerText = 'Membuka file ZIP...';
+    const month = document.getElementById('selectMonth').value;
+    const year = document.getElementById('selectYear').value.trim();
+    
+    document.getElementById('displayMonth').innerText = `${MONTHS[parseInt(month)-1]} ${year}`;
 
     try {
       const zip = await JSZip.loadAsync(file);
@@ -238,80 +298,165 @@
       };
 
       const diary = await readCSV(/(^|\/)diary\.csv$/i);
-      if (!diary) { status.innerText = 'Error: diary.csv tidak ditemukan.'; return; }
+      if (!diary) { alert('Error: diary.csv tidak ditemukan di dalam ZIP.'); return; }
 
-      diaryEntries = diary.map(row => {
-        const dateStr = row['Watched Date'] || row['Date'];
-        if (!dateStr) return null;
-        const parts = dateStr.split('-');
-        if (parts.length < 3) return null;
-        
-        return {
-          title: (row['Name'] || '').trim() || 'Untitled',
-          year: row['Year'] || '',
-          y: parseInt(parts[0]),
-          m: parseInt(parts[1]) - 1,
-          d: parseInt(parts[2])
-        };
-      }).filter(Boolean);
+      // Ambil profile untuk link
+      const profile = await readCSV(/(^|\/)profile\.csv$/i);
+      if (profile && profile[0] && profile[0]['Username']) {
+        document.querySelectorAll('.js-handle').forEach(el => { el.innerText = 'letterboxd.com/' + profile[0]['Username'].trim(); });
+      }
 
-      status.innerText = `Selesai! ${diaryEntries.length} entri diary ditemukan.`;
-      renderApp();
+      movies = [];
+      diary.forEach((row, index) => {
+        const watchDate = row['Watched Date'] || row['Date'];
+        if (!watchDate) return;
+
+        const dateParts = watchDate.split('-');
+        if (dateParts.length >= 2) {
+          const y = dateParts[0].trim();
+          const m = dateParts[1].trim();
+          const day = dateParts[2] ? parseInt(dateParts[2].trim()) : index;
+
+          if (y === year && m === month) {
+            const title = row['Name'] || 'Untitled';
+            const releaseYear = row['Year'] || '';
+            const placeholder = 'https://via.placeholder.com/600x337/242c34/ffffff?text=' + encodeURIComponent(title);
+
+            movies.push({
+              id: 'm_' + index + '_' + Date.now(),
+              originalIndex: index,
+              title: title,
+              year: releaseYear,
+              rawDate: watchDate,
+              day: day,
+              imageSrc: placeholder
+            });
+          }
+        }
+      });
+
+      currentPage = 0;
+      applySorting();
+
+      document.getElementById('displayStats').innerText = `${movies.length} films watched`;
+
+      if (movies.length === 0) {
+        alert(`Tidak ada film di bulan ${MONTHS[parseInt(month)-1]} ${year} pada diary Anda.`);
+      }
 
     } catch (err) {
-      status.innerText = 'Gagal: ' + err.message;
+      alert('Gagal: ' + err.message);
     }
   }
 
-  function renderApp() {
-    const m = parseInt(document.getElementById('selectMonth').value);
-    const y = parseInt(document.getElementById('inputYear').value) || new Date().getFullYear();
-    const backdropsText = document.getElementById('inputBackdrops').value.trim();
-    const backdropUrls = backdropsText ? backdropsText.split('\n').map(u => u.trim()).filter(u => u) : [];
+  function applySorting() {
+    const month = document.getElementById('selectMonth').value;
+    const year = document.getElementById('selectYear').value.trim();
+    document.getElementById('displayMonth').innerText = `${MONTHS[parseInt(month)-1]} ${year}`;
 
-    document.getElementById('outMonthYear').innerText = `${MONTHS[m]} ${y}`;
+    const order = document.getElementById('sortOrder').value;
+    if (order === 'desc') {
+      movies.sort((a, b) => b.day - a.day || b.originalIndex - a.originalIndex);
+    } else {
+      movies.sort((a, b) => a.day - b.day || a.originalIndex - b.originalIndex);
+    }
+    renderControlList();
+    renderGrid();
+  }
 
-    const monthFilms = diaryEntries.filter(f => f.y === y && f.m === m);
-    monthFilms.sort((a, b) => a.d - b.d);
+  async function applyBulkUrls() {
+    const rawText = document.getElementById('bulkUrls').value;
+    const urls = rawText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
 
-    document.getElementById('outTotalFilms').innerText = `${monthFilms.length} films watched`;
+    if (movies.length === 0) { alert("Impor file ZIP terlebih dahulu!"); return; }
+    if (urls.length === 0) { alert("Tempelkan daftar link backdrop terlebih dahulu!"); return; }
 
+    const btn = document.getElementById('btnBulk');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+    btn.disabled = true;
+
+    for (let i = 0; i < Math.min(movies.length, urls.length); i++) {
+      try {
+        movies[i].imageSrc = await fetchImageAsBase64(urls[i]);
+      } catch (err) {}
+    }
+
+    renderControlList();
+    renderGrid();
+
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+
+  function renderControlList() {
+    const listContainer = document.getElementById('csvMovieList');
+    listContainer.innerHTML = '';
+
+    movies.forEach(m => {
+      const card = document.createElement('div');
+      card.className = 'csv-movie-card';
+      const yearText = m.year ? `<span>(${m.year})</span>` : '';
+      card.innerHTML = `
+        <div class="movie-title" title="${m.title}">${m.title} ${yearText}</div>
+        <div class="poster-inputs">
+          <input type="text" placeholder="Paste URL Backdrop..." onchange="updatePosterUrl('${m.id}', this.value)">
+        </div>
+      `;
+      listContainer.appendChild(card);
+    });
+  }
+
+  async function updatePosterUrl(id, url) {
+    if (!url) return;
+    const movie = movies.find(m => m.id === id);
+    if (movie) {
+      movie.imageSrc = await fetchImageAsBase64(url);
+      renderGrid();
+    }
+  }
+
+  function prevPage() { if (currentPage > 0) { currentPage--; renderGrid(); } }
+  function nextPage() {
+    const totalPages = Math.ceil(movies.length / pageSize) || 1;
+    if (currentPage < totalPages - 1) { currentPage++; renderGrid(); }
+  }
+
+  function clearAll() {
+    if (confirm("Reset seluruh data tontonan?")) {
+      movies = [];
+      currentPage = 0;
+      document.getElementById('csvMovieList').innerHTML = '';
+      document.getElementById('bulkUrls').value = '';
+      document.getElementById('displayStats').innerText = '0 films watched';
+      renderGrid();
+    }
+  }
+
+  function renderGrid() {
     const grid = document.getElementById('backdropGrid');
     grid.innerHTML = '';
 
-    if (monthFilms.length === 0) {
-      grid.innerHTML = '<div style="grid-column: span 2; text-align: center; color: #8a9bb0; font-size: 13px; padding-top: 50px;">Belum ada data film di bulan ini.</div>';
-      document.getElementById('slideNav').style.display = 'none';
-      return;
-    }
+    const totalPages = Math.ceil(movies.length / pageSize) || 1;
+    if (currentPage >= totalPages) currentPage = totalPages - 1;
+    if (currentPage < 0) currentPage = 0;
 
-    const totalSlides = Math.ceil(monthFilms.length / MAX_PER_SLIDE);
-    
-    if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-    if (currentSlide < 0) currentSlide = 0;
+    document.getElementById('cardPageIndicator').innerText = `${currentPage + 1}/${totalPages}`;
+    document.getElementById('pageIndicatorText').innerText = `Slide ${currentPage + 1} dari ${totalPages}`;
 
-    // Tampilkan navigasi jika lebih dari 1 slide
-    if (totalSlides > 1) {
-      document.getElementById('slideNav').style.display = 'flex';
-      document.getElementById('slideCounter').innerText = `${currentSlide + 1}/${totalSlides}`;
-    } else {
-      document.getElementById('slideNav').style.display = 'none';
-    }
+    const startIndex = currentPage * pageSize;
+    const pageMovies = movies.slice(startIndex, startIndex + pageSize);
 
-    const startIndex = currentSlide * MAX_PER_SLIDE;
-    const endIndex = startIndex + MAX_PER_SLIDE;
-    const slideFilms = monthFilms.slice(startIndex, endIndex);
-
-    slideFilms.forEach((film, index) => {
-      const url = backdropUrls[startIndex + index] || 'https://via.placeholder.com/400x225/1e262c/4a5a6a?text=No+Backdrop';
-      
+    pageMovies.forEach(m => {
       const item = document.createElement('div');
       item.className = 'backdrop-item';
+      const yearDisplay = m.year ? `<span class="movie-year-text">(${m.year})</span>` : '';
+
       item.innerHTML = `
-        <img src="${url}" alt="${film.title}" onerror="this.src='https://via.placeholder.com/400x225/1e262c/4a5a6a?text=Error'">
-        <div class="bd-text-wrapper">
-          <div class="bd-title">${film.title}</div>
-          ${film.year ? `<div class="bd-year">${film.year}</div>` : ''}
+        <img src="${m.imageSrc}" class="backdrop-img" crossorigin="anonymous" alt="${m.title}">
+        <div class="gradient-overlay">
+          <div class="movie-title-text" title="${m.title}">${m.title}</div>
+          ${yearDisplay}
         </div>
       `;
       grid.appendChild(item);
@@ -320,69 +465,80 @@
     fitPreview();
   }
 
-  function prevSlide() {
-    if (currentSlide > 0) { currentSlide--; renderApp(); }
-  }
-  function nextSlide() {
-    const m = parseInt(document.getElementById('selectMonth').value);
-    const y = parseInt(document.getElementById('inputYear').value) || new Date().getFullYear();
-    const totalMonthFilms = diaryEntries.filter(f => f.y === y && f.m === m).length;
-    const totalSlides = Math.ceil(totalMonthFilms / MAX_PER_SLIDE);
-    
-    if (currentSlide < totalSlides - 1) { currentSlide++; renderApp(); }
-  }
-
   function fitPreview() {
     const inner = document.getElementById('stageInner');
-    const w = inner.clientWidth;
-    const h = inner.clientHeight;
+    const w = inner.clientWidth, h = inner.clientHeight;
     if (!w || !h) return;
-    const scale = Math.min(w / 450, h / 800);
-    document.getElementById('cardHolder').style.setProperty('--s', scale);
+    document.getElementById('cardHolder').style.setProperty('--s', Math.min(w / 450, h / 800));
   }
 
-  async function exportCurrentSlide() {
-    const btn = event.currentTarget;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membuat PNG...';
-    btn.disabled = true;
-
-    try {
-      const card = document.getElementById('exportCard');
-      
-      const clone = card.cloneNode(true);
-      // Paksa jadi solid hitam saat export
-      clone.style.cssText = `display:flex; position:relative; width:450px; height:800px; transform:none; border-radius:0; box-shadow:none; background-color:#14181c;`;
-      
-      const stage = document.createElement('div');
-      stage.style.cssText = `position:fixed; left:-10000px; top:0; width:450px; height:800px; overflow:hidden; pointer-events:none;`;
-      stage.appendChild(clone);
-      document.body.appendChild(stage);
-
-      const canvas = await html2canvas(clone, {
-        scale: 1080 / 450, 
-        width: 450, height: 800,
-        scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true,
-        backgroundColor: '#14181c', logging: false
-      });
-
-      document.body.removeChild(stage);
-
+  // EXPORT FUNCTIONS
+  function exportCurrentPNG() {
+    if (movies.length === 0) { alert("Belum ada film untuk diekspor."); return; }
+    const card = document.getElementById('exportCard');
+    const totalPages = Math.ceil(movies.length / pageSize) || 1;
+    
+    // Perbaikan html2canvas: Bikin background jadi solid pas difoto
+    html2canvas(card, {
+      scale: 1080 / 450,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#14181c',
+      onclone: (clonedDoc) => {
+        clonedDoc.getElementById('exportCard').style.background = '#14181c';
+      }
+    }).then(canvas => {
       const link = document.createElement('a');
-      link.download = `Backdrop-${MONTHS[parseInt(document.getElementById('selectMonth').value)]}-${document.getElementById('inputYear').value}-P${currentSlide+1}.png`;
+      const monthStr = document.getElementById('displayMonth').innerText.replace(/\s+/g, '-');
+      link.download = `Backdrop-${monthStr}-P${currentPage + 1}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+    }).catch(err => { alert("Gagal: " + err.message); });
+  }
 
-    } catch (err) {
-      alert("Gagal export: " + err.message);
-    } finally {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
+  async function exportAllPagesPNG() {
+    if (movies.length === 0) { alert("Belum ada film untuk diekspor."); return; }
+
+    const btn = document.getElementById('btnExportAll');
+    const originalText = btn.innerHTML;
+    const totalPages = Math.ceil(movies.length / pageSize) || 1;
+    const originalPage = currentPage;
+
+    btn.disabled = true;
+
+    for (let p = 0; p < totalPages; p++) {
+      currentPage = p;
+      renderGrid();
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Slide ${p + 1}/${totalPages}...`;
+      await new Promise(r => setTimeout(r, 400));
+
+      const card = document.getElementById('exportCard');
+      const canvas = await html2canvas(card, {
+        scale: 1080 / 450,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#14181c',
+        onclone: (clonedDoc) => {
+          clonedDoc.getElementById('exportCard').style.background = '#14181c';
+        }
+      });
+
+      const link = document.createElement('a');
+      const monthStr = document.getElementById('displayMonth').innerText.replace(/\s+/g, '-');
+      link.download = `Backdrop-${monthStr}-P${p + 1}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      await new Promise(r => setTimeout(r, 600));
     }
+
+    currentPage = originalPage;
+    renderGrid();
+    btn.innerHTML = originalText;
+    btn.disabled = false;
   }
 
   window.onload = () => {
-    renderApp();
+    renderGrid();
     window.addEventListener('resize', fitPreview);
     if (window.ResizeObserver) { new ResizeObserver(fitPreview).observe(document.getElementById('stageInner')); }
   };
