@@ -16,7 +16,7 @@
   <style>
     /* DASAR HITAM & TRANSISI */
     html, body { width: 100%; background-color: #06080d !important; color: #ffffff; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { min-height: 100vh; padding: 12px; display: flex; position: relative; animation: fadeInPage 0.5s ease forwards; overflow: hidden; /* Cegah scroll body */}
+    body { min-height: 100vh; padding: 12px; display: flex; position: relative; animation: fadeInPage 0.5s ease forwards; overflow: hidden; }
     @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
     body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
 
@@ -27,16 +27,17 @@
     .btn-back-home { position: fixed; top: 20px; left: 20px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff; text-decoration: none; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
 
-    /* LAYOUT DUA PANEL */
+    /* LAYOUT DENGAN GAP (ANTI NEMPEL) */
     :root {
       --accent: #00e054;
       --accent2: #ff8000;
       --panel-bg: rgba(20, 24, 28, 0.72);
       --panel-blur: 12px;
       --gap: 28px;
-      --stage-h: min(calc(100vh - 24px), calc((100vw - 442px - 30px) * 1.7778 + 30px), 1100px);
+      /* Kalkulasi jarak aman atas bawah (60px) */
+      --stage-h: min(calc(100vh - 60px), calc((100vw - 442px - 30px) * 1.7778 + 30px), 1100px);
       --stage-w: calc((var(--stage-h) - 30px) * 0.5625 + 30px);
-      --left-w: clamp(380px, calc(var(--stage-w) * 1.2), 550px);
+      --left-w: clamp(360px, calc(var(--stage-w) * 1.2), 550px);
     }
 
     .main-layout { position: relative; z-index: 1; margin: auto; height: var(--stage-h); display: grid; grid-template-columns: var(--left-w) var(--stage-w); column-gap: var(--gap); align-items: stretch; }
@@ -46,7 +47,7 @@
       height: 100%; min-height: 0; 
       background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); 
       border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; 
-      display: flex; flex-direction: column; gap: 10px; overflow: hidden; /* Scroll diatur per elemen */
+      display: flex; flex-direction: column; gap: 10px; overflow: hidden;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
     }
 
@@ -63,7 +64,7 @@
     input[type="file"] { color: #8a9bb0; background: #0f1115; border: 1px solid #2c3440; padding: 4px; border-radius: 6px; font-size: 11px; cursor: pointer; width: 100%; flex: 0 0 auto; }
     input[type="file"]::file-selector-button { background: #222a33; color: #ffffff; border: 1px solid #3a4654; padding: 5px 10px; border-radius: 4px; font-weight: 600; cursor: pointer; margin-right: 6px; }
     
-    textarea { font-family: monospace; font-size: 10.5px; line-height: 1.4; resize: none; height: 60px; flex: 0 0 auto; }
+    textarea { font-family: monospace; font-size: 10.5px; line-height: 1.4; resize: none; height: 55px; flex: 0 0 auto; }
 
     .btn { padding: 8px 10px; border: none; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 0 0 auto; }
     .btn:disabled { opacity: 0.6; cursor: wait; }
@@ -78,10 +79,11 @@
     .pagination-bar button { background: #2c3440; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: 700; }
     .pagination-bar button:hover { background: var(--accent); color: #14181c; }
 
-    /* DAFTAR EDIT FILM (SCROLLABLE) */
-    .csv-movie-list { margin-top: 2px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 4px; flex: 1 1 auto; min-height: 100px; }
+    /* LIST FILM (HILANG SAAT EXPORT) */
+    .csv-movie-list { margin-top: 2px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 4px; flex: 1 1 auto; min-height: 80px; transition: opacity 0.2s; }
     .csv-movie-list::-webkit-scrollbar { width: 6px; }
     .csv-movie-list::-webkit-scrollbar-thumb { background: #2c3440; border-radius: 3px; }
+    .csv-movie-list.hide-on-export { display: none !important; }
 
     .csv-movie-card { background: #0f1115; border: 1px solid #2c3440; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
     .movie-title { font-weight: 700; font-size: 10.5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -102,9 +104,10 @@
     .stats-subtitle { font-size: 11px; color: var(--accent); font-weight: 700; }
     .page-badge { font-size: 10px; color: #ffffff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-weight: 700; }
 
-    /* GRID BACKDROP (2 KOLOM x 5 BARIS) */
+    /* GRID BACKDROP (RASIO 16:9 TERKUNCI) */
     .backdrop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; align-content: start; flex-grow: 1; margin-top: 6px; margin-bottom: auto; width: 100%; }
     
+    /* PENTING: aspect-ratio 16/9 */
     .backdrop-item { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; background-color: #1e262c; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: flex-end; }
     .backdrop-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     
@@ -179,13 +182,14 @@
     </div>
 
     <div class="form-group">
-      <label>2. Paste Massal Link Backdrop (16:9)</label>
+      <label>2. Paste Massal Link Backdrop</label>
       <textarea id="bulkUrls" placeholder="https://image.tmdb.org/t/p/w780/...&#10;https://image.tmdb.org/t/p/w780/..."></textarea>
-      <button class="btn btn-parse" style="margin-top:4px;" id="btnBulk" onclick="applyBulkUrls()"><i class="fa-solid fa-wand-magic-sparkles"></i> Terapkan Semua Backdrop</button>
+      <button class="btn btn-parse" style="margin-top:4px;" id="btnBulk" onclick="applyBulkUrls()"><i class="fa-solid fa-wand-magic-sparkles"></i> Terapkan Semua</button>
     </div>
 
-    <div class="btn-group" style="display:flex; gap:8px;">
-      <button class="btn btn-clear" onclick="clearAll()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+    <div class="form-group">
+      <label>3. Link Profil Letterboxd</label>
+      <input type="text" id="inputLetterboxdLink" value="letterboxd.com/hwangik" oninput="updateProfileLink()">
     </div>
 
     <div class="pagination-bar">
@@ -194,12 +198,15 @@
       <button onclick="nextPage()">Next <i class="fa-solid fa-chevron-right"></i></button>
     </div>
 
-    <div class="btn-group" style="flex-direction: column; gap: 6px;">
-      <button class="btn btn-export" onclick="exportCurrentPNG()"><i class="fa-solid fa-download"></i> Export Slide Ini</button>
-      <button class="btn btn-all" id="btnExportAll" onclick="exportAllPagesPNG()"><i class="fa-solid fa-layer-group"></i> Export Semua Slide</button>
+    <div class="btn-group" style="display:flex; gap:6px; flex-direction: column;">
+      <div style="display:flex; gap:6px; width: 100%;">
+        <button class="btn btn-export" onclick="exportCurrentPNG()"><i class="fa-solid fa-download"></i> Slide Ini</button>
+        <button class="btn btn-all" style="margin-top:0;" onclick="exportAllPagesPNG()"><i class="fa-solid fa-layer-group"></i> Semua</button>
+      </div>
+      <button class="btn btn-clear" onclick="clearAll()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
     </div>
 
-    <!-- DAFTAR EDIT -->
+    <!-- LIST FILM (DIHIDE SAAT EXPORT) -->
     <div class="csv-movie-list" id="csvMovieList"></div>
   </div>
 
@@ -250,7 +257,6 @@
   let currentPage = 0;
   const pageSize = 10;
 
-  // Ambil Base64 untuk Gambar (Hindari CORS)
   async function fetchImageAsBase64(url) {
     const cleanUrl = url.trim().replace(/^"|"$/g, '');
     const proxyList = [
@@ -271,14 +277,16 @@
             reader.readAsDataURL(blob);
           });
         }
-      } catch (err) {
-        console.warn("Proxy attempt failed:", err);
-      }
+      } catch (err) {}
     }
     return cleanUrl;
   }
 
-  // FUNGSI IMPORT ZIP
+  function updateProfileLink() {
+    const val = document.getElementById('inputLetterboxdLink').value.trim() || 'letterboxd.com/hwangik';
+    document.querySelectorAll('.js-handle').forEach(el => { el.innerText = val; });
+  }
+
   async function processZipFile() {
     const file = document.getElementById('zipFileInput').files[0];
     if (!file) return;
@@ -298,12 +306,13 @@
       };
 
       const diary = await readCSV(/(^|\/)diary\.csv$/i);
-      if (!diary) { alert('Error: diary.csv tidak ditemukan di dalam ZIP.'); return; }
+      if (!diary) { alert('Error: diary.csv tidak ditemukan.'); return; }
 
-      // Ambil profile untuk link
       const profile = await readCSV(/(^|\/)profile\.csv$/i);
       if (profile && profile[0] && profile[0]['Username']) {
-        document.querySelectorAll('.js-handle').forEach(el => { el.innerText = 'letterboxd.com/' + profile[0]['Username'].trim(); });
+        const username = profile[0]['Username'].trim();
+        document.getElementById('inputLetterboxdLink').value = 'letterboxd.com/' + username;
+        updateProfileLink();
       }
 
       movies = [];
@@ -472,13 +481,16 @@
     document.getElementById('cardHolder').style.setProperty('--s', Math.min(w / 450, h / 800));
   }
 
-  // EXPORT FUNCTIONS
+  // LOGIKA EXPORT DENGAN MENYEMBUNYIKAN LIST FILM
   function exportCurrentPNG() {
     if (movies.length === 0) { alert("Belum ada film untuk diekspor."); return; }
     const card = document.getElementById('exportCard');
     const totalPages = Math.ceil(movies.length / pageSize) || 1;
+    const list = document.getElementById('csvMovieList');
     
-    // Perbaikan html2canvas: Bikin background jadi solid pas difoto
+    // Sembunyikan list
+    list.classList.add('hide-on-export');
+
     html2canvas(card, {
       scale: 1080 / 450,
       useCORS: true,
@@ -493,7 +505,11 @@
       link.download = `Backdrop-${monthStr}-P${currentPage + 1}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-    }).catch(err => { alert("Gagal: " + err.message); });
+    }).catch(err => { alert("Gagal: " + err.message); })
+      .finally(() => {
+        // Munculkan lagi
+        list.classList.remove('hide-on-export');
+      });
   }
 
   async function exportAllPagesPNG() {
@@ -503,8 +519,10 @@
     const originalText = btn.innerHTML;
     const totalPages = Math.ceil(movies.length / pageSize) || 1;
     const originalPage = currentPage;
+    const list = document.getElementById('csvMovieList');
 
     btn.disabled = true;
+    list.classList.add('hide-on-export'); // Sembunyikan list saat batch
 
     for (let p = 0; p < totalPages; p++) {
       currentPage = p;
@@ -533,11 +551,13 @@
 
     currentPage = originalPage;
     renderGrid();
+    list.classList.remove('hide-on-export'); // Munculkan lagi
     btn.innerHTML = originalText;
     btn.disabled = false;
   }
 
   window.onload = () => {
+    updateProfileLink();
     renderGrid();
     window.addEventListener('resize', fitPreview);
     if (window.ResizeObserver) { new ResizeObserver(fitPreview).observe(document.getElementById('stageInner')); }
