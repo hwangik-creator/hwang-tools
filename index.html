@@ -47,38 +47,29 @@
 
     /* CONTAINER HOME */
     .home-container {
-      width: 100%; max-width: 1400px; padding: 20px 40px; display: flex; flex-direction: column;
+      width: 100%; max-width: 1200px; padding: 20px; display: flex; flex-direction: column;
       align-items: center; text-align: center; position: relative; height: 100vh;
       justify-content: space-between; z-index: 10; /* Di atas overlay */
     }
 
     .content-wrapper { margin: auto; display: flex; flex-direction: column; align-items: center; width: 100%; }
-    .home-title { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; text-shadow: 0 4px 20px rgba(0,0,0,0.7); }
+    .home-title { font-size: 2.3rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; text-shadow: 0 4px 20px rgba(0,0,0,0.7); }
     .home-title span { color: var(--letterboxd-green); }
-    .home-subtitle { font-size: 0.95rem; color: #9ab; margin-bottom: 40px; font-weight: 500; text-shadow: 0 2px 10px rgba(0,0,0,0.7); }
+    .home-subtitle { font-size: 0.95rem; color: #9ab; margin-bottom: 35px; font-weight: 500; text-shadow: 0 2px 10px rgba(0,0,0,0.7); }
 
-    /* GRID MENU DINAMIS (AUTO-FIT) */
+    /* GRID MENU (4 KOLOM) */
     .menu-grid { 
       display: grid; 
-      /* Otomatis bagi kolom, minimal lebar 220px per kartu */
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+      grid-template-columns: repeat(4, 1fr); 
       gap: 20px; 
       width: 100%; 
-      justify-content: center; /* Biar kalau sisa, tetap ke tengah */
     }
 
-    /* Supaya kalau cuma 5 item, dia maksimal 3 kolom di layar sedang, dan 5 kolom di layar super lebar */
-    @media (min-width: 1280px) {
-      .menu-grid { grid-template-columns: repeat(5, 1fr); }
+    @media (max-width: 1024px) {
+      .menu-grid { grid-template-columns: repeat(2, 1fr); max-width: 700px; }
     }
-    @media (max-width: 1279px) and (min-width: 900px) {
-      .menu-grid { grid-template-columns: repeat(3, 1fr); max-width: 900px; }
-    }
-    @media (max-width: 899px) and (min-width: 600px) {
-      .menu-grid { grid-template-columns: repeat(2, 1fr); max-width: 600px; }
-    }
-    @media (max-width: 599px) {
-      .menu-grid { grid-template-columns: 1fr; max-width: 350px; }
+    @media (max-width: 600px) {
+      .menu-grid { grid-template-columns: 1fr; max-width: 380px; }
     }
 
     /* KARTU MENU */
@@ -163,14 +154,6 @@
           <div class="card-icon"><i class="fa-solid fa-chart-pie"></i></div>
           <div class="card-title">Year in Review</div>
           <div class="card-desc">Rangkuman statistik tahunan film yang telah ditonton beserta rekap data lengkap.</div>
-        </a>
-
-        <!-- Tombol 5: Monthly Backdrops (BARU) -->
-        <a href="./monthly-backdrops/" class="menu-card">
-          <div class="card-badge">Active</div>
-          <div class="card-icon"><i class="fa-solid fa-images"></i></div>
-          <div class="card-title">Monthly Backdrops</div>
-          <div class="card-desc">Susun backdrop film cinematic yang kamu tonton bulan ini dalam format Story.</div>
         </a>
       </div>
     </div>
