@@ -13,17 +13,20 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
+    /* DASAR HITAM & TRANSISI */
     html, body { width: 100%; background-color: #06080d !important; color: #ffffff; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
     body { min-height: 100vh; padding: 12px; display: flex; position: relative; animation: fadeInPage 0.5s ease forwards; }
     @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
     body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
 
+    /* BACKGROUND & TOMBOL BACK */
     #bgLayer { position: fixed; inset: 0; z-index: 0; background-image: url('../bg.jpg') !important; background-size: cover; background-position: center; background-repeat: no-repeat; opacity: 1 !important; pointer-events: none; }
     #bgLayer::before { content: ""; position: absolute; inset: 0; background: rgba(6, 8, 13, 0.35); z-index: 1; }
 
     .btn-back-home { position: fixed; top: 20px; left: 20px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff; text-decoration: none; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
 
+    /* LAYOUT UTAMA */
     :root {
       --accent: #00e054;
       --panel-bg: rgba(20, 24, 28, 0.72);
@@ -35,6 +38,7 @@
 
     .main-layout { position: relative; z-index: 1; margin: auto; height: var(--stage-h); display: grid; grid-template-columns: var(--left-w) var(--stage-w); column-gap: 28px; align-items: stretch; }
 
+    /* PANEL KIRI */
     .control-panel { height: 100%; min-height: 0; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .panel-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
     
@@ -50,50 +54,67 @@
 
     .btn { padding: 8px 10px; border: none; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
     .btn:disabled { opacity: 0.6; cursor: wait; }
-    .btn-active { background: var(--accent); color: #14181c; }
-    .btn-inactive { background: #2c3440; color: #ffffff; }
     .btn-export { background: #ff8000; color: #ffffff; width: 100%; padding: 10px; margin-top: 10px; }
     .btn-export:hover { background: #e07000; }
 
-    /* Panel Kanan */
-    .stage-panel { position: relative; height: 100%; background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    /* PANEL KANAN (KACA TRANSPARAN) */
+    .stage-panel { 
+      position: relative; height: 100%; 
+      background: var(--panel-bg); 
+      -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); 
+      border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+      display: flex; flex-direction: column;
+    }
+    
     .stage-inner { position: absolute; inset: 14px; overflow: hidden; display: flex; justify-content: center; align-items: center; }
     
-    /* Kanvas 9:16 */
+    /* KANVAS 9:16 */
     .card-holder { position: relative; width: 450px; height: 800px; transform: scale(var(--s, 1)); transform-origin: center center; }
-    .recap-card { width: 450px; height: 800px; background-color: #14181c; padding: 30px 24px 22px 24px; border-radius: 12px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+    .recap-card { 
+      width: 450px; height: 800px; 
+      background-color: #14181c; /* Solid pas di-export, tapi transparan di layar */
+      padding: 24px 20px 18px 20px; 
+      border-radius: 12px; display: flex; flex-direction: column; position: relative; overflow: hidden; 
+    }
     
-    .card-header { text-align: center; margin-bottom: 20px; flex: 0 0 auto; }
-    .card-title { font-size: 26px; font-weight: 800; line-height: 1.1; color: #ffffff; }
-    .card-subtitle { font-size: 13px; color: var(--accent); font-weight: 700; margin-top: 4px; }
+    .card-header { text-align: center; margin-bottom: 14px; flex: 0 0 auto; }
+    .card-title { font-size: 24px; font-weight: 800; line-height: 1.1; color: #ffffff; }
+    .card-subtitle { font-size: 12px; color: var(--accent); font-weight: 700; margin-top: 4px; }
 
-    .backdrop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1 1 auto; align-content: start; }
+    /* GRID BACKDROP */
+    .backdrop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1 1 auto; align-content: start; }
     
-    .backdrop-item { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #242c34; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-    .backdrop-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .backdrop-item { 
+      position: relative; width: 100%; 
+      border-radius: 8px; overflow: hidden; 
+      background: #1e262c; 
+      border: 1px solid rgba(255,255,255,0.1); 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+      display: flex; flex-direction: column;
+    }
     
-    /* Gradient overlay untuk teks */
-    .backdrop-item::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, transparent 100%); pointer-events: none; }
+    /* Gambar dibiarkan mengikuti proporsi asli (biasanya 16:9) */
+    .backdrop-item img { width: 100%; height: auto; display: block; min-height: 90px; object-fit: cover; }
     
-    .bd-text { position: absolute; bottom: 8px; left: 8px; right: 8px; z-index: 2; }
-    .bd-title { font-size: 11px; font-weight: 800; line-height: 1.2; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .bd-year { font-size: 9px; font-weight: 600; color: #bcc8d2; margin-top: 2px; display: inline-block; background: rgba(0,0,0,0.6); padding: 2px 4px; border-radius: 4px; }
+    .bd-text-wrapper { padding: 6px 8px; background: #14181c; }
+    .bd-title { font-size: 10.5px; font-weight: 700; line-height: 1.25; color: #fff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .bd-year { font-size: 9.5px; font-weight: 600; color: #8a9bb0; margin-top: 3px; display: block; }
 
-    .user-profile-card { flex: 0 0 auto; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; margin-top: 15px; display: flex; align-items: center; justify-content: center; }
+    .user-profile-card { flex: 0 0 auto; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; margin-top: 12px; display: flex; align-items: center; justify-content: center; }
     .lbxd-brand { display: flex; align-items: center; gap: 6px; }
-    .lbxd-dots { font-size: 12px; letter-spacing: -2px; line-height: 1; }
-    .brand-name { font-size: 12px; font-weight: 800; color: #ffffff; }
+    .lbxd-dots { font-size: 11px; letter-spacing: -2px; line-height: 1; }
+    .brand-name { font-size: 11px; font-weight: 800; color: #ffffff; }
 
-    /* Navigasi Slide */
-    .slide-nav { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
-    .slide-nav button { background: #2c3440; border: none; color: #fff; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+    /* NAVIGASI SLIDE */
+    .slide-nav { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px 0; position: relative; z-index: 10; }
+    .slide-nav button { background: #2c3440; border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
     .slide-nav button:hover { background: var(--accent); color: #14181c; }
-    .slide-nav span { font-size: 11px; font-weight: 700; color: #8a9bb0; display: flex; align-items: center; }
+    .slide-nav span { font-size: 11px; font-weight: 700; color: #8a9bb0; }
 
     @media (max-width: 900px) {
       .main-layout { width: 100%; height: auto; grid-template-columns: 1fr; row-gap: 15px; }
       .stage-panel { height: auto; width: 100%; max-width: 480px; margin: 0 auto; aspect-ratio: 9/16; }
-      .card-holder { transform: scale(var(--s, 0.8)); } 
     }
   </style>
 </head>
@@ -178,7 +199,7 @@
       </div>
     </div>
     
-    <!-- Navigasi Slide -->
+    <!-- Navigasi Slide (Disembunyikan default, muncul kalau > 1 slide) -->
     <div class="slide-nav" id="slideNav" style="display: none;">
       <button onclick="prevSlide()"><i class="fa-solid fa-chevron-left"></i></button>
       <span id="slideCounter">1/2</span>
@@ -197,10 +218,9 @@
   const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const MAX_PER_SLIDE = 10; // 2 kolom x 5 baris
 
-  let diaryEntries = []; // Data film dari ZIP
+  let diaryEntries = []; 
   let currentSlide = 0;
 
-  // Setup fungsi upload ZIP
   async function processZipFile() {
     const file = document.getElementById('zipFileInput').files[0];
     if (!file) return;
@@ -220,7 +240,6 @@
       const diary = await readCSV(/(^|\/)diary\.csv$/i);
       if (!diary) { status.innerText = 'Error: diary.csv tidak ditemukan.'; return; }
 
-      // Simpan data film yang punya tanggal tonton
       diaryEntries = diary.map(row => {
         const dateStr = row['Watched Date'] || row['Date'];
         if (!dateStr) return null;
@@ -244,7 +263,6 @@
     }
   }
 
-  // Fungsi Render Utama
   function renderApp() {
     const m = parseInt(document.getElementById('selectMonth').value);
     const y = parseInt(document.getElementById('inputYear').value) || new Date().getFullYear();
@@ -253,10 +271,7 @@
 
     document.getElementById('outMonthYear').innerText = `${MONTHS[m]} ${y}`;
 
-    // Filter film berdasarkan bulan & tahun
     const monthFilms = diaryEntries.filter(f => f.y === y && f.m === m);
-    
-    // Urutkan berdasarkan tanggal (1 - 31)
     monthFilms.sort((a, b) => a.d - b.d);
 
     document.getElementById('outTotalFilms').innerText = `${monthFilms.length} films watched`;
@@ -270,10 +285,8 @@
       return;
     }
 
-    // Hitung total halaman
     const totalSlides = Math.ceil(monthFilms.length / MAX_PER_SLIDE);
     
-    // Pastikan currentSlide tidak out of bounds
     if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
     if (currentSlide < 0) currentSlide = 0;
 
@@ -285,21 +298,18 @@
       document.getElementById('slideNav').style.display = 'none';
     }
 
-    // Ambil potongan data untuk slide saat ini
     const startIndex = currentSlide * MAX_PER_SLIDE;
     const endIndex = startIndex + MAX_PER_SLIDE;
     const slideFilms = monthFilms.slice(startIndex, endIndex);
 
-    // Render Item Grid
     slideFilms.forEach((film, index) => {
-      // Ambil URL backdrop sesuai urutan asli film (startIndex + index)
       const url = backdropUrls[startIndex + index] || 'https://via.placeholder.com/400x225/1e262c/4a5a6a?text=No+Backdrop';
       
       const item = document.createElement('div');
       item.className = 'backdrop-item';
       item.innerHTML = `
         <img src="${url}" alt="${film.title}" onerror="this.src='https://via.placeholder.com/400x225/1e262c/4a5a6a?text=Error'">
-        <div class="bd-text">
+        <div class="bd-text-wrapper">
           <div class="bd-title">${film.title}</div>
           ${film.year ? `<div class="bd-year">${film.year}</div>` : ''}
         </div>
@@ -307,11 +317,9 @@
       grid.appendChild(item);
     });
 
-    // Sinkronisasi posisi preview
     fitPreview();
   }
 
-  // Fungsi Navigasi Slide
   function prevSlide() {
     if (currentSlide > 0) { currentSlide--; renderApp(); }
   }
@@ -324,7 +332,6 @@
     if (currentSlide < totalSlides - 1) { currentSlide++; renderApp(); }
   }
 
-  // Menyesuaikan ukuran pratinjau
   function fitPreview() {
     const inner = document.getElementById('stageInner');
     const w = inner.clientWidth;
@@ -334,7 +341,6 @@
     document.getElementById('cardHolder').style.setProperty('--s', scale);
   }
 
-  // Export PNG
   async function exportCurrentSlide() {
     const btn = event.currentTarget;
     const originalText = btn.innerHTML;
@@ -344,8 +350,8 @@
     try {
       const card = document.getElementById('exportCard');
       
-      // Clone untuk di-render
       const clone = card.cloneNode(true);
+      // Paksa jadi solid hitam saat export
       clone.style.cssText = `display:flex; position:relative; width:450px; height:800px; transform:none; border-radius:0; box-shadow:none; background-color:#14181c;`;
       
       const stage = document.createElement('div');
@@ -354,7 +360,7 @@
       document.body.appendChild(stage);
 
       const canvas = await html2canvas(clone, {
-        scale: 1080 / 450, // Resolusi tinggi (1080x1920)
+        scale: 1080 / 450, 
         width: 450, height: 800,
         scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true,
         backgroundColor: '#14181c', logging: false
