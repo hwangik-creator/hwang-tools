@@ -23,7 +23,8 @@
       overflow: hidden; 
     }
     body { 
-      min-height: 100vh; padding: 12px; display: flex; position: relative; 
+      box-sizing: border-box;
+      min-height: 100vh; padding: var(--edge); display: flex; position: relative; 
       animation: fadeInPage 0.5s ease forwards; 
     }
     @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
@@ -56,20 +57,35 @@
 
     /* =========================================================
        LAYOUT PRESISI (KIRI-KANAN SEJAJAR)
+       ---------------------------------------------------------
+       --edge : jarak panel ke tepi browser (atas/bawah/kiri/kanan)
+       --pad  : ruang kosong kartu di dalam stage (harus = 40 / 2 di fitPreview)
+       --bd   : total border stage (1px kiri + 1px kanan)
        ========================================================= */
     :root {
       --accent: #00e054;
       --panel-bg: rgba(20, 24, 28, 0.72);
       --panel-blur: 12px;
+
+      --edge: 24px;
       --gap: 28px;
-      --stage-h: min(calc(100vh - 60px), calc((100vw - 442px - 30px) * 1.7778 + 30px), 1100px);
-      --stage-w: calc((var(--stage-h) - 30px) * 0.5625 + 30px);
+      --pad: 20px;
+      --bd: 2px;
+      --frame: calc(var(--pad) * 2 + var(--bd));
+
+      --stage-h: min(
+        calc(100vh - var(--edge) * 2),
+        calc(((100vw - var(--edge) * 2 - var(--gap)) / 2.1 - var(--frame)) / 0.5625 + var(--frame)),
+        1100px
+      );
+      --stage-w: calc((var(--stage-h) - var(--frame)) * 0.5625 + var(--frame));
       --left-w: clamp(340px, calc(var(--stage-w) * 1.1), 520px);
     }
 
     .main-layout { 
-      position: relative; z-index: 1; margin: auto; height: var(--stage-h); 
+      position: relative; z-index: 1; margin: auto; flex: 0 0 auto; height: var(--stage-h); 
       display: grid; grid-template-columns: var(--left-w) var(--stage-w); 
+      grid-template-rows: minmax(0, 1fr);
       column-gap: var(--gap); align-items: stretch; 
     }
 
@@ -77,6 +93,7 @@
        PANEL KIRI
        ========================================================= */
     .control-panel { 
+      box-sizing: border-box;
       height: 100%; min-height: 0; 
       background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); 
       border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; 
@@ -115,7 +132,7 @@
     /* =========================================================
        PANEL KANAN (KANVAS)
        ========================================================= */
-    .stage-panel { position: relative; height: 100%; background: var(--panel-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    .stage-panel { box-sizing: border-box; position: relative; height: 100%; background: var(--panel-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; overflow: hidden; }
     
     .card-holder { position: absolute; width: 1080px; height: 1920px; transform: scale(var(--s, 0.2)); transform-origin: center center; flex-shrink: 0; }
     .recap-card { width: 1080px; height: 1920px; background-color: #14181c; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden; }
@@ -183,7 +200,8 @@
     .user-handle-info .sub-cta { font-size: 14px; color: #8a9bb0; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
 
     @media (max-width: 900px) {
-      .main-layout { width: 100%; height: auto; grid-template-columns: 1fr; row-gap: 15px; }
+      :root { --edge: 12px; }
+      .main-layout { width: 100%; height: auto; grid-template-columns: 1fr; grid-template-rows: auto; row-gap: 15px; }
       .stage-panel { height: auto; width: 100%; max-width: 480px; margin: 0 auto; aspect-ratio: 9/16; }
       .card-holder { transform: scale(calc(480 / 1080)) !important; }
     }
@@ -272,30 +290,68 @@
   let items = []; 
   let currentPage = 0;
 
-  async function fetchImageAsBase64(url) {
-    if (!url) return null;
-    const cleanUrl = url.trim().replace(/^"|"$/g, '');
-    const proxyList = [
-      u => `https://images.weserv.nl/?url=${encodeURIComponent(u)}`,
-      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+  // ---------------------------------------------------------
+  // CACHE & ANTRIAN KONVERSI GAMBAR (supaya preview cepat)
+  // ---------------------------------------------------------
+  const base64Cache = new Map();   // url -> Promise (hasil konversi)
+  const base64Ready = new Map();   // url -> dataURL yang sudah selesai (dipakai instan)
+  let pendingConversions = [];     // tugas gambar pada slide yang sedang tampil
+
+  function cleanUrlOf(url) {
+    return (url || '').trim().replace(/^"|"$/g, '');
+  }
+
+  function blobToDataURL(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function fetchBlobWithTimeout(url, ms) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, { signal: ctrl.signal })
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.blob();
+      })
+      .then(blob => {
+        if (!blob.size) throw new Error('empty');
+        if (blob.type && !blob.type.startsWith('image/')) throw new Error('not image');
+        return blob;
+      })
+      .finally(() => clearTimeout(timer));
+  }
+
+  // Akses langsung + 2 proxy dicoba BERSAMAAN, yang pertama berhasil dipakai
+  function fetchImageAsBase64(url) {
+    const cleanUrl = cleanUrlOf(url);
+    if (!cleanUrl) return Promise.resolve(null);
+    if (base64Cache.has(cleanUrl)) return base64Cache.get(cleanUrl);
+
+    const sources = [
+      cleanUrl,
+      `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`
     ];
 
-    for (let getProxy of proxyList) {
-      try {
-        const res = await fetch(getProxy(cleanUrl));
-        if (!res.ok) continue;
-        const blob = await res.blob();
-        if (blob.size > 0) {
-          return await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        }
-      } catch (err) {}
-    }
-    return cleanUrl;
+    const promise = Promise.any(
+      sources.map(src => fetchBlobWithTimeout(src, 12000).then(blobToDataURL))
+    )
+      .then(dataUrl => {
+        base64Ready.set(cleanUrl, dataUrl);
+        return dataUrl;
+      })
+      .catch(() => {
+        base64Cache.delete(cleanUrl);
+        return cleanUrl;
+      });
+
+    base64Cache.set(cleanUrl, promise);
+    return promise;
   }
 
   function updateTitle() {
@@ -335,19 +391,15 @@
     }, 500);
   }
 
-  function setCoverImage(wrapper, src, isBase64) {
-    // Jika ini update dari base64, jangan hapus img lama agar tidak berkedip
-    if (isBase64 && wrapper.querySelector('.backdrop-img')) {
-      const existingImg = wrapper.querySelector('.backdrop-img');
-      existingImg.src = src; // Timpa gambar lama dengan base64
-      return;
-    }
-
-    wrapper.innerHTML = '';
+  // Tampilkan gambar secepat mungkin dari URL asli (atau base64 jika sudah ada di cache),
+  // lalu setelah tampil, ganti ke base64 di belakang layar agar aman saat export.
+  // Mengembalikan Promise yang selesai ketika gambar siap untuk export.
+  function setCoverImage(wrapper, rawUrl) {
+    const cleanUrl = cleanUrlOf(rawUrl);
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.className = 'backdrop-img';
-    
+    img.decoding = 'async';
+
     img.onload = () => {
       const bw = wrapper.clientWidth || 496;
       const bh = wrapper.clientHeight || 281;
@@ -356,9 +408,26 @@
       const h = img.naturalHeight * scale;
 
       img.style.cssText = `position:absolute; width:${w}px; height:${h}px; left:${(bw - w) / 2}px; top:${(bh - h) / 2}px; object-fit: fill;`;
-      wrapper.appendChild(img);
+      if (!img.parentNode) wrapper.appendChild(img);
     };
-    img.src = src;
+
+    const firstPaint = new Promise(resolve => {
+      img.addEventListener('load', resolve, { once: true });
+      img.addEventListener('error', resolve, { once: true });
+    });
+
+    img.src = base64Ready.get(cleanUrl) || cleanUrl;
+
+    return firstPaint
+      .then(() => fetchImageAsBase64(cleanUrl))
+      .then(data => {
+        if (!data || !data.startsWith('data:') || img.src === data || !wrapper.isConnected) return;
+        return new Promise(resolve => {
+          img.addEventListener('load', resolve, { once: true });
+          img.addEventListener('error', resolve, { once: true });
+          img.src = data;
+        });
+      });
   }
 
   async function renderGrid() {
@@ -372,6 +441,7 @@
 
     const grid = document.getElementById('backdropGrid');
     grid.innerHTML = '';
+    pendingConversions = [];
 
     const start = currentPage * MAX_ITEMS;
     const currentItems = items.slice(start, start + MAX_ITEMS);
@@ -396,17 +466,7 @@
       grid.appendChild(div);
 
       const wrapper = div.querySelector('.img-wrapper');
-      
-      // 1. TAMPILKAN GAMBAR INSTAN (URL ASLI) DULU
-      setCoverImage(wrapper, item.url, false);
-
-      // 2. PROSES BASE64 DI BELAKANG LAYAR (UNTUK EXPORT)
-      fetchImageAsBase64(item.url).then(base64 => {
-        // Jika hasil base64 berbeda dengan URL asli, timpa (agar aman saat export)
-        if (base64 && base64 !== item.url) {
-          setCoverImage(wrapper, base64, true);
-        }
-      });
+      pendingConversions.push(setCoverImage(wrapper, item.url));
     }
 
     fitPreview();
@@ -434,6 +494,12 @@
   async function captureCanvas() {
     const card = document.getElementById('exportCard');
     const holder = document.getElementById('cardHolder');
+
+    // Tunggu semua gambar slide ini selesai dikonversi ke base64 (maks 20 detik)
+    await Promise.race([
+      Promise.all(pendingConversions),
+      new Promise(resolve => setTimeout(resolve, 20000))
+    ]);
     
     const originalScale = holder.style.getPropertyValue('--s');
     holder.style.setProperty('--s', 1);
