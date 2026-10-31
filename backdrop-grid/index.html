@@ -62,7 +62,6 @@
       --panel-bg: rgba(20, 24, 28, 0.72);
       --panel-blur: 12px;
       --gap: 28px;
-      /* Kalkulasi jarak aman atas bawah (60px) */
       --stage-h: min(calc(100vh - 60px), calc((100vw - 442px - 30px) * 1.7778 + 30px), 1100px);
       --stage-w: calc((var(--stage-h) - 30px) * 0.5625 + 30px);
       --left-w: clamp(340px, calc(var(--stage-w) * 1.1), 520px);
@@ -127,7 +126,7 @@
     .stats-subtitle { font-size: 24px; color: var(--accent); font-weight: 700; }
     .page-badge { font-size: 20px; color: #ffffff; background: #2c3440; padding: 4px 16px; border-radius: 20px; font-weight: 700; }
 
-    /* GRID (DARI KODE CLAUDE) */
+    /* GRID */
     .backdrop-grid { 
       display: grid; 
       grid-template-columns: repeat(2, 1fr); 
@@ -336,7 +335,14 @@
     }, 500);
   }
 
-  function setCoverImage(wrapper, src) {
+  function setCoverImage(wrapper, src, isBase64) {
+    // Jika ini update dari base64, jangan hapus img lama agar tidak berkedip
+    if (isBase64 && wrapper.querySelector('.backdrop-img')) {
+      const existingImg = wrapper.querySelector('.backdrop-img');
+      existingImg.src = src; // Timpa gambar lama dengan base64
+      return;
+    }
+
     wrapper.innerHTML = '';
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -390,8 +396,16 @@
       grid.appendChild(div);
 
       const wrapper = div.querySelector('.img-wrapper');
+      
+      // 1. TAMPILKAN GAMBAR INSTAN (URL ASLI) DULU
+      setCoverImage(wrapper, item.url, false);
+
+      // 2. PROSES BASE64 DI BELAKANG LAYAR (UNTUK EXPORT)
       fetchImageAsBase64(item.url).then(base64 => {
-        if (base64) setCoverImage(wrapper, base64);
+        // Jika hasil base64 berbeda dengan URL asli, timpa (agar aman saat export)
+        if (base64 && base64 !== item.url) {
+          setCoverImage(wrapper, base64, true);
+        }
       });
     }
 
