@@ -47,7 +47,7 @@
 
     /* CONTAINER HOME */
     .home-container {
-      width: 100%; max-width: 1200px; padding: 20px; display: flex; flex-direction: column;
+      width: 100%; max-width: 1000px; padding: 20px; display: flex; flex-direction: column;
       align-items: center; text-align: center; position: relative; height: 100vh;
       justify-content: space-between; z-index: 10; /* Di atas overlay */
     }
@@ -57,12 +57,14 @@
     .home-title span { color: var(--letterboxd-green); }
     .home-subtitle { font-size: 0.95rem; color: #9ab; margin-bottom: 35px; font-weight: 500; text-shadow: 0 2px 10px rgba(0,0,0,0.7); }
 
-    /* GRID MENU (4 KOLOM) */
+    /* GRID MENU (DIUBAH JADI 3 KOLOM) */
     .menu-grid { 
       display: grid; 
-      grid-template-columns: repeat(4, 1fr); 
+      grid-template-columns: repeat(3, 1fr); /* 3 di atas, 2 di bawah */
       gap: 20px; 
       width: 100%; 
+      max-width: 900px; /* Dibatasi agar tidak terlalu lebar */
+      justify-content: center; /* Rata tengah */
     }
 
     @media (max-width: 1024px) {
@@ -87,6 +89,19 @@
     .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
     .card-desc { font-size: 0.8rem; color: #9ab; line-height: 1.4; }
     .card-badge { position: absolute; top: 12px; right: 12px; font-size: 0.65rem; font-weight: 700; padding: 3px 7px; border-radius: 4px; background: rgba(0, 224, 84, 0.2); color: var(--letterboxd-green); }
+
+    /* ==== GAYA UNTUK TOMBOL NONAKTIF (SOON) ==== */
+    .menu-card.disabled {
+      background: rgba(20, 24, 28, 0.4);
+      border-color: rgba(255, 255, 255, 0.05);
+      cursor: not-allowed;
+    }
+    .menu-card.disabled:hover { transform: none; box-shadow: 0 15px 35px rgba(0,0,0,0.5); border-color: rgba(255, 255, 255, 0.05); }
+    .menu-card.disabled .card-icon { background: rgba(255, 255, 255, 0.05); color: #555; }
+    .menu-card.disabled:hover .card-icon { background: rgba(255, 255, 255, 0.05); color: #555; }
+    .menu-card.disabled .card-title { color: #777; }
+    .menu-card.disabled .card-desc { color: #555; }
+    .menu-card.disabled .card-badge { background: #333; color: #888; }
     
     .home-footer { font-size: 0.75rem; color: #789; margin-bottom: 15px; text-shadow: 0 2px 8px rgba(0,0,0,0.8); letter-spacing: 0.3px; }
 
@@ -124,41 +139,41 @@
       <p class="home-subtitle">Dibuat dan digunakan untuk keperluan pribadi.</p>
 
       <div class="menu-grid">
-        <!-- Tombol 1: Monthly Calendar -->
-        <a href="./movie-calendar/" class="menu-card">
+        <!-- Tombol 1: Monthly Calendar (AKTIF) -->
+        <a href="./movie-calendar/" class="menu-card active">
           <div class="card-badge">Active</div>
           <div class="card-icon"><i class="fa-solid fa-calendar-days"></i></div>
           <div class="card-title">Monthly Calendar</div>
           <div class="card-desc">Buat kalender bulanan estetik dari file ZIP Letterboxd kamu.</div>
         </a>
 
-        <!-- Tombol 2: Custom Posters -->
-        <a href="./custom-posters/" class="menu-card">
+        <!-- Tombol 2: Custom Posters (AKTIF) -->
+        <a href="./custom-posters/" class="menu-card active">
           <div class="card-badge">Active</div>
           <div class="card-icon"><i class="fa-solid fa-film"></i></div>
           <div class="card-title">Custom Posters</div>
           <div class="card-desc">Generator template poster ulasan film siap post untuk media sosial.</div>
         </a>
 
-        <!-- Tombol 3: Movie Collage -->
-        <a href="./movie-collage/" class="menu-card">
+        <!-- Tombol 3: Movie Collage (AKTIF) -->
+        <a href="./movie-collage/" class="menu-card active">
           <div class="card-badge">Active</div>
           <div class="card-icon"><i class="fa-solid fa-layer-group"></i></div>
           <div class="card-title">Movie Collage</div>
           <div class="card-desc">Buat kolase poster film bertema bebas dengan kustomisasi judul sesukamu.</div>
         </a>
 
-        <!-- Tombol 4: Year in Review -->
-        <a href="./year-in-review/" class="menu-card">
-          <div class="card-badge">Active</div>
+        <!-- Tombol 4: Year in Review (NONAKTIF) -->
+        <a href="#" class="menu-card disabled">
+          <div class="card-badge">Soon</div>
           <div class="card-icon"><i class="fa-solid fa-chart-pie"></i></div>
           <div class="card-title">Year in Review</div>
           <div class="card-desc">Rangkuman statistik tahunan film yang telah ditonton beserta rekap data lengkap.</div>
         </a>
 
-        <!-- Tombol 5: Backdrop Grid -->
-        <a href="./backdrop-grid/" class="menu-card">
-          <div class="card-badge">Active</div>
+        <!-- Tombol 5: Backdrop Grid (NONAKTIF) -->
+        <a href="#" class="menu-card disabled">
+          <div class="card-badge">Soon</div>
           <div class="card-icon"><i class="fa-solid fa-border-all"></i></div>
           <div class="card-title">Backdrop Grid</div>
           <div class="card-desc">Susun 8 backdrop film cinematic dalam format story 9:16.</div>
@@ -169,7 +184,6 @@
   </div>
 
   <script>
-    // MENGATASI BLANK HITAM SAAT TOMBOL BACK BROWSER DIKLIK
     window.addEventListener('pageshow', function(event) {
       if (event.persisted) {
         document.body.classList.remove('fade-out');
@@ -202,10 +216,17 @@
       setTimeout(() => document.getElementById('bgLayer').classList.add('loaded'), 100);
     });
 
-    // ANIMASI KLIK MENU
+    // ANIMASI KLIK MENU & LOGIKA TOMBOL DISABLED
     document.querySelectorAll('.menu-card').forEach(card => {
       card.addEventListener('click', function(e) {
         e.preventDefault(); 
+
+        // Jika tombol nonaktif, munculkan alert, jangan pindah halaman
+        if (this.classList.contains('disabled')) {
+          alert("Fitur ini masih dalam tahap pengembangan (Coming Soon)!");
+          return;
+        }
+
         const targetUrl = this.getAttribute('href');
         document.body.classList.add('fade-out');
         setTimeout(() => { window.location.href = targetUrl; }, 400);
