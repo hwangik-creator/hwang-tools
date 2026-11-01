@@ -1,1 +1,594 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backdrop Grid</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2306080d'/%3E%3Ctext x='50' y='72' font-size='60' fill='%2300e054' text-anchor='middle' font-family='Arial, sans-serif'%3E%F0%9F%96%BC%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <style>
+    /* =========================================================
+       DASAR HITAM & TRANSISI
+       ========================================================= */
+    html, body { 
+      width: 100%; height: 100vh; 
+      background-color: #06080d !important; 
+      color: #ffffff; 
+      margin: 0; padding: 0; 
+      font-family: 'Inter', sans-serif; 
+      overflow: hidden; 
+    }
+    body { 
+      box-sizing: border-box;
+      min-height: 100vh; padding: var(--edge); display: flex; position: relative; 
+      animation: fadeInPage 0.5s ease forwards; 
+    }
+    @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
+    body.fade-out { opacity: 0 !important; transition: opacity 0.4s ease; }
+
+    /* =========================================================
+       BACKGROUND LOKAL & TOMBOL BACK
+       ========================================================= */
+    #bgLayer { 
+      position: fixed; inset: 0; z-index: 0; 
+      background-image: url('../bg.jpg') !important; 
+      background-size: cover; background-position: center; background-repeat: no-repeat; 
+      opacity: 1 !important; pointer-events: none; 
+    }
+    #bgLayer::before { 
+      content: ""; position: absolute; inset: 0; 
+      background: rgba(6, 8, 13, 0.35); z-index: 1; 
+    }
+
+    .btn-back-home {
+      position: fixed; top: 20px; left: 20px; z-index: 9999;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(20, 24, 28, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
+      padding: 8px 14px; font-size: 11.5px; font-weight: 700; color: #fff;
+      text-decoration: none; cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .btn-back-home:hover { background: rgba(25, 30, 36, 0.9); border-color: #00e054; color: #00e054; transform: translateY(-2px); }
+
+    /* =========================================================
+       LAYOUT PRESISI (KIRI-KANAN SEJAJAR)
+       ---------------------------------------------------------
+       --edge : jarak panel ke tepi browser (atas/bawah/kiri/kanan)
+       --pad  : ruang kosong kartu di dalam stage (harus = 40 / 2 di fitPreview)
+       --bd   : total border stage (1px kiri + 1px kanan)
+       ========================================================= */
+    :root {
+      --accent: #00e054;
+      --panel-bg: rgba(20, 24, 28, 0.72);
+      --panel-blur: 12px;
+
+      --edge: 24px;
+      --gap: 28px;
+      --pad: 20px;
+      --bd: 2px;
+      --frame: calc(var(--pad) * 2 + var(--bd));
+
+      --stage-h: min(
+        calc(100vh - var(--edge) * 2),
+        calc(((100vw - var(--edge) * 2 - var(--gap)) / 2.1 - var(--frame)) / 0.5625 + var(--frame)),
+        1100px
+      );
+      --stage-w: calc((var(--stage-h) - var(--frame)) * 0.5625 + var(--frame));
+      --left-w: clamp(340px, calc(var(--stage-w) * 1.1), 520px);
+    }
+
+    .main-layout { 
+      position: relative; z-index: 1; margin: auto; flex: 0 0 auto; height: var(--stage-h); 
+      display: grid; grid-template-columns: var(--left-w) var(--stage-w); 
+      grid-template-rows: minmax(0, 1fr);
+      column-gap: var(--gap); align-items: stretch; 
+    }
+
+    /* =========================================================
+       PANEL KIRI
+       ========================================================= */
+    .control-panel { 
+      box-sizing: border-box;
+      height: 100%; min-height: 0; 
+      background: var(--panel-bg); -webkit-backdrop-filter: blur(var(--panel-blur)); backdrop-filter: blur(var(--panel-blur)); 
+      border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; padding: 16px; 
+      display: flex; flex-direction: column; overflow-y: auto; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+    }
+    .control-panel::-webkit-scrollbar { width: 6px; }
+    .control-panel::-webkit-scrollbar-thumb { background: #2c3440; border-radius: 3px; }
+
+    .panel-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; flex: 0 0 auto; }
+    .form-group label { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    input[type="text"], textarea { 
+      background: #0f1115; border: 1px solid #2c3440; color: #fff; 
+      padding: 7px; border-radius: 6px; font-size: 11px; outline: none; width: 100%; box-sizing: border-box;
+    }
+    input[type="text"]:focus, textarea:focus { border-color: var(--accent); }
+    textarea { font-family: monospace; font-size: 10.5px; line-height: 1.4; resize: vertical; min-height: 120px; }
+
+    .btn { 
+      padding: 10px; border: none; border-radius: 6px; font-weight: 700; font-size: 11.5px; 
+      cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; 
+      width: 100%; margin-top: 4px; flex: 0 0 auto;
+    }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .btn-export { background: var(--accent); color: #14181c; }
+    .btn-export:hover { background: #00b342; }
+    .btn-all { background: #3b82f6; color: #ffffff; margin-top: 6px; }
+    .btn-all:hover { background: #2563eb; }
+
+    .pagination-bar { display: flex; align-items: center; justify-content: space-between; background: #0f1115; border: 1px solid #2c3440; border-radius: 6px; padding: 4px 8px; margin-top: 10px; flex: 0 0 auto; }
+    .pagination-bar button { background: #2c3440; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: 700; }
+    .pagination-bar button:hover { background: var(--accent); color: #14181c; }
+
+    /* =========================================================
+       PANEL KANAN (KANVAS)
+       ========================================================= */
+    .stage-panel { box-sizing: border-box; position: relative; height: 100%; background: var(--panel-bg); backdrop-filter: blur(var(--panel-blur)); -webkit-backdrop-filter: blur(var(--panel-blur)); border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    
+    .card-holder { position: absolute; width: 1080px; height: 1920px; transform: scale(var(--s, 0.2)); transform-origin: center center; flex-shrink: 0; }
+    .recap-card { width: 1080px; height: 1920px; background-color: #14181c; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+    .card-header { text-align: center; margin-bottom: 20px; flex: 0 0 auto; }
+    .month-title { font-size: 48px; font-weight: 800; color: #ffffff; letter-spacing: -1px; line-height: 1.1; }
+    .header-sub-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 12px; }
+    .stats-subtitle { font-size: 24px; color: var(--accent); font-weight: 700; }
+    .page-badge { font-size: 20px; color: #ffffff; background: #2c3440; padding: 4px 16px; border-radius: 20px; font-weight: 700; }
+
+    /* GRID */
+    .backdrop-grid { 
+      display: grid; 
+      grid-template-columns: repeat(2, 1fr); 
+      gap: 16px; 
+      flex-grow: 1; 
+      width: 100%; 
+      align-content: center; 
+      justify-content: center; 
+    }
+    
+    .backdrop-item { 
+      position: relative; 
+      width: 100%; 
+      height: 277px; 
+      border-radius: 12px; 
+      overflow: hidden; 
+      background-color: #1e262c; 
+      box-shadow: 0 6px 15px rgba(0,0,0,0.5); 
+      display: flex; flex-direction: column; justify-content: flex-end;
+    }
+
+    .backdrop-item::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      z-index: 3;
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+    
+    .img-wrapper { position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; overflow: hidden; }
+    .backdrop-img { position: absolute; display: block; max-width: none; user-select: none; }
+
+    /* GRADASI: tinggi dibuat bilangan bulat + tidak boleh mengulang (anti garis hitam saat export) */
+    .gradient-overlay { 
+      position: absolute; 
+      bottom: -2px; left: -2px; right: -2px; 
+      z-index: 2; 
+      padding: 40px 18px 14px 18px; 
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0) 100%); 
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+      display: flex; flex-direction: column; justify-content: flex-end; 
+    }
+    
+    .movie-title-text { font-size: 20px; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 24px; text-shadow: none; }
+    .movie-year-text { display: block; font-size: 14px; color: #b0c0d0; font-weight: 600; margin-top: 2px; line-height: 17px; text-shadow: none; }
+
+    .user-profile-card { flex: 0 0 auto; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 24px; margin-top: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .lbxd-brand { display: flex; align-items: center; gap: 12px; }
+    .lbxd-dots { font-size: 24px; letter-spacing: -4px; line-height: 1; }
+    .brand-name { font-size: 24px; font-weight: 800; color: #ffffff; }
+    .user-handle-info { display: flex; flex-direction: column; align-items: flex-end; }
+    .user-handle-info .handle-text { font-size: 22px; font-weight: 700; color: #ffffff; }
+    .user-handle-info .sub-cta { font-size: 14px; color: #8a9bb0; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
+
+    @media (max-width: 900px) {
+      :root { --edge: 12px; }
+      .main-layout { width: 100%; height: auto; grid-template-columns: 1fr; grid-template-rows: auto; row-gap: 15px; }
+      .stage-panel { height: auto; width: 100%; max-width: 480px; margin: 0 auto; aspect-ratio: 9/16; }
+      .card-holder { transform: scale(calc(480 / 1080)) !important; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="../" class="btn-back-home" onclick="goBackHome(event)">
+  <i class="fa-solid fa-arrow-left"></i> Kembali ke Home
+</a>
+
+<div id="bgLayer"></div>
+
+<div class="main-layout">
+  <div class="control-panel">
+    <div class="panel-title"><i class="fa-solid fa-border-all"></i> Backdrop Gallery</div>
+
+    <div class="form-group">
+      <label>Judul Bulan & Tahun</label>
+      <input type="text" id="inTitle" value="Oktober 2026" maxlength="100" oninput="updateTitle()">
+    </div>
+
+    <div class="form-group">
+      <label>Link Backdrop + Judul (1 per baris)</label>
+      <textarea id="inUrls" placeholder="https://image.tmdb.org/t/p/... | The Cycle (2026)&#10;https://image.tmdb.org/t/p/... | Film Kedua (2025)" oninput="onUrlsInput()"></textarea>
+      <div style="font-size: 10px; color: #8a9bb0; margin-top: 4px;">
+        Format: <strong>Link | Judul (Tahun)</strong>. Wajib pakai tanda pipa (|). Maks 8 gambar per slide.
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Link Letterboxd Kamu</label>
+      <input type="text" id="inUserHandle" value="letterboxd.com/hwangik" oninput="updateHandle()">
+    </div>
+
+    <div class="pagination-bar">
+      <button onclick="prevSlide()"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+      <span id="pageIndicatorText" style="font-size: 11px; font-weight: 700; color: var(--accent);">Slide 1 dari 1</span>
+      <button onclick="nextSlide()">Next <i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+
+    <button class="btn btn-export" onclick="exportCurrentSlide()"><i class="fa-solid fa-download"></i> Download Slide Ini</button>
+    <button class="btn btn-all" onclick="exportAllSlides()"><i class="fa-solid fa-layer-group"></i> Download Semua Slide</button>
+  </div>
+
+  <div class="stage-panel">
+    <div class="card-holder" id="cardHolder">
+      
+      <div class="recap-card" id="exportCard">
+        <div class="card-header">
+          <div class="month-title" id="outTitle">Oktober 2026</div>
+          <div class="header-sub-row">
+            <span class="stats-subtitle" id="outStats">0 films watched</span>
+            <span class="page-badge" id="outPage">1/1</span>
+          </div>
+        </div>
+
+        <div class="backdrop-grid" id="backdropGrid"></div>
+
+        <div class="user-profile-card">
+          <div class="lbxd-brand">
+            <div class="lbxd-dots">
+              <span style="color:#00e054;">●</span><span style="color:#ff8000;">●</span><span style="color:#40bcf4;">●</span>
+            </div>
+            <span class="brand-name">Letterboxd</span>
+          </div>
+          <div class="user-handle-info">
+            <span class="handle-text js-handle">letterboxd.com/hwangik</span>
+            <span class="sub-cta">Follow on Letterboxd</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function goBackHome(e) {
+    e.preventDefault();
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = '../'; }, 400);
+  }
+
+  const MAX_ITEMS = 8;
+  let items = []; 
+  let currentPage = 0;
+
+  // ---------------------------------------------------------
+  // CACHE & ANTRIAN KONVERSI GAMBAR (supaya preview cepat)
+  // ---------------------------------------------------------
+  const base64Cache = new Map();   // url -> Promise (hasil konversi)
+  const base64Ready = new Map();   // url -> dataURL yang sudah selesai (dipakai instan)
+  let pendingConversions = [];     // tugas gambar pada slide yang sedang tampil
+
+  function cleanUrlOf(url) {
+    return (url || '').trim().replace(/^"|"$/g, '');
+  }
+
+  function blobToDataURL(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function fetchBlobWithTimeout(url, ms) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, { signal: ctrl.signal })
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.blob();
+      })
+      .then(blob => {
+        if (!blob.size) throw new Error('empty');
+        if (blob.type && !blob.type.startsWith('image/')) throw new Error('not image');
+        return blob;
+      })
+      .finally(() => clearTimeout(timer));
+  }
+
+  // Akses langsung + 2 proxy dicoba BERSAMAAN, yang pertama berhasil dipakai
+  function fetchImageAsBase64(url) {
+    const cleanUrl = cleanUrlOf(url);
+    if (!cleanUrl) return Promise.resolve(null);
+    if (base64Cache.has(cleanUrl)) return base64Cache.get(cleanUrl);
+
+    const sources = [
+      cleanUrl,
+      `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`
+    ];
+
+    const promise = Promise.any(
+      sources.map(src => fetchBlobWithTimeout(src, 12000).then(blobToDataURL))
+    )
+      .then(dataUrl => {
+        base64Ready.set(cleanUrl, dataUrl);
+        return dataUrl;
+      })
+      .catch(() => {
+        base64Cache.delete(cleanUrl);
+        return cleanUrl;
+      });
+
+    base64Cache.set(cleanUrl, promise);
+    return promise;
+  }
+
+  function updateTitle() {
+    const val = document.getElementById('inTitle').value.trim() || 'Oktober 2026';
+    document.getElementById('outTitle').innerText = val;
+  }
+
+  function updateHandle() {
+    const val = document.getElementById('inUserHandle').value.trim() || 'letterboxd.com/hwangik';
+    document.querySelectorAll('.js-handle').forEach(el => { el.innerText = val; });
+  }
+
+  let urlsTimer = null;
+  function onUrlsInput() {
+    clearTimeout(urlsTimer);
+    urlsTimer = setTimeout(() => {
+      const raw = document.getElementById('inUrls').value;
+      
+      items = raw.split('\n').map(line => {
+        const parts = line.split('|');
+        const url = parts[0] ? parts[0].trim() : '';
+        const titleRaw = parts[1] ? parts[1].trim() : 'Untitled';
+
+        let title = titleRaw;
+        let year = '';
+        const yearMatch = titleRaw.match(/\((\d{4})\)/);
+        if (yearMatch) {
+          year = yearMatch[1];
+          title = titleRaw.replace(/\(\d{4}\)/, '').trim();
+        }
+
+        return { url, title, year };
+      }).filter(item => item.url);
+
+      currentPage = 0;
+      renderGrid();
+    }, 500);
+  }
+
+  // Tampilkan gambar secepat mungkin dari URL asli (atau base64 jika sudah ada di cache),
+  // lalu setelah tampil, ganti ke base64 di belakang layar agar aman saat export.
+  // Mengembalikan Promise yang selesai ketika gambar siap untuk export.
+  function setCoverImage(wrapper, rawUrl) {
+    const cleanUrl = cleanUrlOf(rawUrl);
+    const img = new Image();
+    img.className = 'backdrop-img';
+    img.decoding = 'async';
+
+    img.onload = () => {
+      const bw = wrapper.clientWidth || 496;
+      const bh = wrapper.clientHeight || 281;
+      const scale = Math.max((bw + 2) / img.naturalWidth, (bh + 2) / img.naturalHeight);
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+
+      img.style.cssText = `position:absolute; width:${w}px; height:${h}px; left:${(bw - w) / 2}px; top:${(bh - h) / 2}px; object-fit: fill;`;
+      if (!img.parentNode) wrapper.appendChild(img);
+    };
+
+    const firstPaint = new Promise(resolve => {
+      img.addEventListener('load', resolve, { once: true });
+      img.addEventListener('error', resolve, { once: true });
+    });
+
+    img.src = base64Ready.get(cleanUrl) || cleanUrl;
+
+    return firstPaint
+      .then(() => fetchImageAsBase64(cleanUrl))
+      .then(data => {
+        if (!data || !data.startsWith('data:') || img.src === data || !wrapper.isConnected) return;
+        return new Promise(resolve => {
+          img.addEventListener('load', resolve, { once: true });
+          img.addEventListener('error', resolve, { once: true });
+          img.src = data;
+        });
+      });
+  }
+
+  async function renderGrid() {
+    const totalPages = Math.ceil(items.length / MAX_ITEMS) || 1;
+    if (currentPage >= totalPages) currentPage = totalPages - 1;
+    if (currentPage < 0) currentPage = 0;
+
+    document.getElementById('outStats').innerText = `${items.length} films watched`;
+    document.getElementById('pageIndicatorText').innerText = `Slide ${currentPage + 1} dari ${totalPages}`;
+    document.getElementById('outPage').innerText = `${currentPage + 1}/${totalPages}`;
+
+    const grid = document.getElementById('backdropGrid');
+    grid.innerHTML = '';
+    pendingConversions = [];
+
+    const start = currentPage * MAX_ITEMS;
+    const currentItems = items.slice(start, start + MAX_ITEMS);
+
+    if (currentItems.length === 0) {
+      grid.innerHTML = '<div style="grid-column: span 2; text-align: center; color: #8a9bb0; font-size: 24px;">Tempel link backdrop di panel kiri</div>';
+      return;
+    }
+
+    for (let i = 0; i < currentItems.length; i++) {
+      const item = currentItems[i];
+      const div = document.createElement('div');
+      div.className = 'backdrop-item';
+      
+      div.innerHTML = `
+        <div class="img-wrapper" id="wrapper-${i}"></div>
+        <div class="gradient-overlay">
+          <div class="movie-title-text" title="${item.title}">${item.title}</div>
+          ${item.year ? `<span class="movie-year-text">${item.year}</span>` : ''}
+        </div>
+      `;
+      grid.appendChild(div);
+
+      const wrapper = div.querySelector('.img-wrapper');
+      pendingConversions.push(setCoverImage(wrapper, item.url));
+    }
+
+    fitPreview();
+  }
+
+  function fitPreview() {
+    const stage = document.querySelector('.stage-panel');
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+    if (!w || !h) return;
+    
+    const scaleX = (w - 40) / 1080;
+    const scaleY = (h - 40) / 1920;
+    const scale = Math.min(scaleX, scaleY);
+    
+    document.getElementById('cardHolder').style.setProperty('--s', scale);
+  }
+
+  function prevSlide() { if (currentPage > 0) { currentPage--; renderGrid(); } }
+  function nextSlide() {
+    const totalPages = Math.ceil(items.length / MAX_ITEMS) || 1;
+    if (currentPage < totalPages - 1) { currentPage++; renderGrid(); }
+  }
+
+  async function captureCanvas() {
+    const card = document.getElementById('exportCard');
+    const holder = document.getElementById('cardHolder');
+
+    // Tunggu semua gambar slide ini selesai dikonversi ke base64 (maks 20 detik)
+    await Promise.race([
+      Promise.all(pendingConversions),
+      new Promise(resolve => setTimeout(resolve, 20000))
+    ]);
+    
+    const originalScale = holder.style.getPropertyValue('--s');
+    holder.style.setProperty('--s', 1);
+
+    try {
+      const canvas = await html2canvas(card, {
+        scale: 1, 
+        width: 1080,
+        height: 1920,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#14181c',
+        logging: false
+      });
+      return canvas;
+    } finally {
+      holder.style.setProperty('--s', originalScale);
+    }
+  }
+
+  async function exportCurrentSlide() {
+    if (items.length === 0) { alert("Belum ada gambar untuk diekspor."); return; }
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+    btn.disabled = true;
+
+    try {
+      const canvas = await captureCanvas();
+      const link = document.createElement('a');
+      const titleStr = document.getElementById('inTitle').value.replace(/\s+/g, '-') || 'Backdrop';
+      link.download = `${titleStr}-P${currentPage + 1}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      alert("Gagal export: " + err.message);
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  async function exportAllSlides() {
+    if (items.length === 0) { alert("Belum ada gambar untuk diekspor."); return; }
+
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    const totalPages = Math.ceil(items.length / MAX_ITEMS) || 1;
+    const originalPage = currentPage;
+
+    btn.disabled = true;
+
+    for (let p = 0; p < totalPages; p++) {
+      currentPage = p;
+      await renderGrid();
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Slide ${p + 1}/${totalPages}...`;
+      
+      await new Promise(r => setTimeout(r, 800));
+
+      const canvas = await captureCanvas();
+
+      const link = document.createElement('a');
+      const titleStr = document.getElementById('inTitle').value.replace(/\s+/g, '-') || 'Backdrop';
+      link.download = `${titleStr}-P${p + 1}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      await new Promise(r => setTimeout(r, 500));
+    }
+
+    currentPage = originalPage;
+    await renderGrid();
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+
+  window.onload = () => {
+    updateTitle();
+    updateHandle();
+    renderGrid();
+    window.addEventListener('resize', fitPreview);
+    if (window.ResizeObserver) { 
+      new ResizeObserver(fitPreview).observe(document.querySelector('.stage-panel')); 
+    }
+  };
+</script>
+
+</body>
+</html>
